@@ -1,0 +1,9 @@
+[workspace]
+members = [
+  # "auth-service",
+  "common",
+  "users-service",
+  # "classes-service",
+  # "grades-service",
+]
+resolver = "3"

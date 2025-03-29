@@ -1,0 +1,16 @@
+FROM rust:1.85.0-slim-bullseye AS dev-base
+
+WORKDIR /usr/src/app
+
+RUN cargo install cargo-watch \
+    && apt-get update \
+    && apt-get install -y pkg-config libssl-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CARGO_TARGET_DIR=/usr/src/app/target
+
+# Users-service
+FROM dev-base AS users-service
+WORKDIR /usr/src/app/users-service
+EXPOSE 8080
+CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]

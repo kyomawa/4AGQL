@@ -1,0 +1,101 @@
+
+networks:
+  4agql_network_prod:
+    driver: bridge
+services:
+  traefik:
+    image: traefik:v3.1
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT_TRAEFIK}:80"
+      - "${HOST_PORT_TRAEFIK_DASHBOARD}:8080"
+    command: 
+      - "--providers.docker=true"          
+      - "--entrypoints.http.address=:80"
+      - "--ping=true"
+      - "--ping.entrypoint=http"
+      - "--api.dashboard=true" 
+      - "--log.level=DEBUG"
+      - "--accesslog=true"     
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+    - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+    - "traefik.http.routers.traefik.service=api@internal"
+    - "traefik.http.routers.traefik.entrypoints=http"
+    - "traefik.http.routers.traefik.middlewares=traefik-auth"
+    - "traefik.http.middlewares.traefik-auth.basicauth.users=${DASHBOARD_USER}:${DASHBOARD_PASSWORD_HASH}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - 4agql_network_prod
+
+  database:
+    image: mongo:latest
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT_MONGODB}:27017"
+    volumes:
+      - ./mongo-init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DATABASE_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD}
+    networks:
+      - 4agql_network_prod
+
+  front-service:
+    build:
+      context: ./front-service
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.front.rule=Host(`localhost`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.front.entrypoints=http"
+      - "traefik.http.services.front.loadbalancer.server.port=5173"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - 4agql_network_prod
+
+  users-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace.prod
+      target: users-service
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-X", "POST", "http://localhost:8080/api/users/graphql", "-H", "Content-Type: application/json", "-d", "{\"query\":\"{ healthCheck }\"}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    environment:
+      JWT_INTERNAL_SIGNATURE: ${JWT_INTERNAL_SIGNATURE}
+      JWT_EXTERNAL_SIGNATURE: ${JWT_EXTERNAL_SIGNATURE}
+      DATABASE_URL_USERS_SERVICE: ${DATABASE_URL_USERS_SERVICE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.users.rule=PathPrefix(`/api/users`)"
+      - "traefik.http.routers.users.entrypoints=http"
+      - "traefik.http.services.users.loadbalancer.server.port=8080"
+      - "traefik.http.routers.users.priority=10"
+    networks:
+      - 4agql_network_prod
