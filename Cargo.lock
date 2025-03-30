@@ -712,6 +712,7 @@ dependencies = [
  "mongodb",
  "once_cell",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "validator",

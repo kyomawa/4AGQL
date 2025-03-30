@@ -16,14 +16,14 @@ pub struct User {
     pub pseudo: String,
     pub email: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub class_id: Option<ObjectId>,
+    #[serde(default)]
+    pub class_ids: Vec<ObjectId>,
 }
 
 // =============================================================================================================================
 
 #[derive(Debug, Serialize, Deserialize, InputObject, Validate)]
-pub struct CreateUser {
+pub struct CreateUserRequest {
     #[serde(deserialize_with = "trim_lowercase")]
     #[validate(length(
         min = 2,
@@ -68,7 +68,7 @@ pub struct CreateUser {
 // =============================================================================================================================
 
 #[derive(Debug, Serialize, Deserialize, InputObject, Validate)]
-pub struct UpdateUser {
+pub struct UpdateUserRequest {
     #[serde(deserialize_with = "trim_lowercase")]
     #[validate(length(
         min = 2,
@@ -108,6 +108,9 @@ pub struct UpdateUser {
     #[serde(deserialize_with = "trim_lowercase")]
     #[validate(email(message = "Email must be valid"))]
     pub email: String,
+
+    #[serde(default)]
+    pub class_ids: Vec<ObjectId>,
 }
 
 // =============================================================================================================================

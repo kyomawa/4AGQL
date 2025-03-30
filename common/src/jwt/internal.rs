@@ -1,10 +1,12 @@
 use std::env;
 
-use actix_web::{HttpRequest, http::header};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
+
+use crate::schemas::AuthRole;
+
+use super::jwt_utils::Claims;
 
 // =============================================================================================================================
 
@@ -15,18 +17,12 @@ pub static JWT_INTERNAL_SIGNATURE: Lazy<Vec<u8>> = Lazy::new(|| {
 
 // =============================================================================================================================
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InternalClaims {
-    pub internal: bool,
-    pub exp: i64,
-}
-
-// =============================================================================================================================
-
 pub fn encode_internal_jwt() -> Result<String, String> {
-    let claims = InternalClaims {
+    let claims = Claims {
         internal: true,
-        exp: (Utc::now() + Duration::minutes(5)).timestamp(),
+        exp: (Utc::now() + Duration::seconds(20)).timestamp(),
+        user_id: "dummy".to_string(),
+        role: AuthRole::Admin,
     };
     encode(
         &Header::default(),
@@ -38,9 +34,9 @@ pub fn encode_internal_jwt() -> Result<String, String> {
 
 // =============================================================================================================================
 
-pub fn decode_internal_jwt(token: &str) -> Result<InternalClaims, String> {
+pub fn decode_internal_jwt(token: &str) -> Result<Claims, String> {
     let signature = JWT_INTERNAL_SIGNATURE.as_slice();
-    decode::<InternalClaims>(
+    decode::<Claims>(
         token,
         &DecodingKey::from_secret(signature),
         &Validation::default(),
@@ -51,26 +47,11 @@ pub fn decode_internal_jwt(token: &str) -> Result<InternalClaims, String> {
 
 // =============================================================================================================================
 
-pub fn get_internal_jwt(req: &HttpRequest) -> Result<InternalClaims, String> {
-    let auth_header = req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .ok_or("Missing Authorization header")?;
-
-    let auth_str = auth_header.to_str().map_err(|_| "Invalid header string")?;
-    let token = auth_str
-        .strip_prefix("Bearer ")
-        .ok_or("Invalid token format, expected Bearer")?;
-
-    decode_internal_jwt(token)
-}
-
-// =============================================================================================================================
-
-pub fn authenticate_internal_request(req: &HttpRequest) -> Result<InternalClaims, String> {
-    match get_internal_jwt(req) {
-        Ok(payload) => Ok(payload),
-        Err(e) => Err(e),
+pub fn authenticate_internal_request(claims: &Claims) -> Result<&Claims, String> {
+    if claims.internal {
+        Ok(claims)
+    } else {
+        Err("Forbidden: this call requires an internal token".to_string())
     }
 }
 

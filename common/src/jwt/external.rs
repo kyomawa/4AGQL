@@ -1,10 +1,11 @@
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 use std::env;
 
 use crate::schemas::AuthRole;
+
+use super::jwt_utils::Claims;
 
 // =============================================================================================================================
 
@@ -15,18 +16,10 @@ pub static JWT_EXTERNAL_SIGNATURE: Lazy<Vec<u8>> = Lazy::new(|| {
 
 // =============================================================================================================================
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExternalClaims {
-    pub user_id: String,
-    pub role: AuthRole,
-    pub exp: i64,
-}
-
-// =============================================================================================================================
-
 pub fn encode_external_jwt(user_id: String, role: AuthRole) -> Result<String, String> {
     let signature = JWT_EXTERNAL_SIGNATURE.as_slice();
-    let claims = ExternalClaims {
+    let claims = Claims {
+        internal: false,
         user_id,
         role,
         exp: (Utc::now() + Duration::minutes(60)).timestamp(),
@@ -41,9 +34,9 @@ pub fn encode_external_jwt(user_id: String, role: AuthRole) -> Result<String, St
 
 // =============================================================================================================================
 
-pub fn decode_external_jwt(token: &str) -> Result<ExternalClaims, String> {
+pub fn decode_external_jwt(token: &str) -> Result<Claims, String> {
     let signature = JWT_EXTERNAL_SIGNATURE.as_slice();
-    decode::<ExternalClaims>(
+    decode::<Claims>(
         token,
         &DecodingKey::from_secret(signature),
         &Validation::default(),
@@ -54,16 +47,16 @@ pub fn decode_external_jwt(token: &str) -> Result<ExternalClaims, String> {
 
 // =============================================================================================================================
 
-pub fn get_authenticated_user(token: &ExternalClaims) -> &ExternalClaims {
+pub fn get_authenticated_user(token: &Claims) -> &Claims {
     token
 }
 
 // =============================================================================================================================
 
 pub fn user_has_any_of_these_roles<'a>(
-    token: &'a ExternalClaims,
+    token: &'a Claims,
     roles: &[AuthRole],
-) -> Result<&'a ExternalClaims, String> {
+) -> Result<&'a Claims, String> {
     if roles.contains(&token.role) {
         Ok(token)
     } else {

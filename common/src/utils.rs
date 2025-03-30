@@ -1,12 +1,18 @@
+use async_graphql::Error;
 use mongodb::bson::serde_helpers::serialize_object_id_as_hex_string;
 use mongodb::bson::{DateTime, oid::ObjectId};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use reqwest::Client;
+use serde::de::DeserializeOwned;
 use serde::de::{self, Deserializer, MapAccess, Visitor};
 use serde::ser::Error as SerError;
 use serde::{self, Deserialize, Serializer};
+use serde_json::Value as JsonValue;
 use std::fmt;
 use validator::ValidationError;
+
+use crate::jwt::internal::encode_internal_jwt;
 
 // =============================================================================================================================
 
@@ -222,6 +228,45 @@ pub fn validate_date_not_in_past(date: &DateTime) -> Result<(), ValidationError>
     }
 
     Ok(())
+}
+
+// =============================================================================================================================
+
+pub async fn send_graphql_request<T: DeserializeOwned>(
+    url: &str,
+    payload: &JsonValue,
+    key: &str,
+) -> Result<T, Error> {
+    let internal_token = encode_internal_jwt()?;
+
+    let client = Client::new();
+    let res = client
+        .post(url)
+        .header("Authorization", format!("Bearer {}", internal_token))
+        .json(payload)
+        .send()
+        .await
+        .map_err(|e| Error::new(e.to_string()))?;
+
+    let gql_response = res
+        .json::<async_graphql::Response>()
+        .await
+        .map_err(|e| Error::new(e.to_string()))?;
+
+    if !gql_response.errors.is_empty() {
+        return Err(Error::new(gql_response.errors[0].message.clone()));
+    }
+
+    let data_json: JsonValue =
+        serde_json::to_value(&gql_response.data).map_err(|e| Error::new(e.to_string()))?;
+
+    let inner = data_json
+        .get(key)
+        .ok_or_else(|| Error::new(format!("Missing key: {}", key)))?;
+
+    let result = serde_json::from_value(inner.clone()).map_err(|e| Error::new(e.to_string()))?;
+
+    Ok(result)
 }
 
 // =============================================================================================================================
