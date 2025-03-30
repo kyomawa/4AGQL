@@ -22,7 +22,7 @@ pub fn encode_external_jwt(user_id: String, role: AuthRole) -> Result<String, St
         internal: false,
         user_id,
         role,
-        exp: (Utc::now() + Duration::minutes(60)).timestamp(),
+        exp: (Utc::now() + Duration::minutes(120)).timestamp(),
     };
     encode(
         &Header::default(),

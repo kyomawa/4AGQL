@@ -1,4 +1,5 @@
 use actix_web::http::header::{self, HeaderMap};
+use async_graphql::SimpleObject;
 use serde::{Deserialize, Serialize};
 
 use crate::schemas::AuthRole;
@@ -7,7 +8,7 @@ use super::{external::decode_external_jwt, internal::decode_internal_jwt};
 
 // =============================================================================================================================
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, SimpleObject)]
 pub struct Claims {
     pub internal: bool,
     pub exp: i64,

@@ -24,8 +24,12 @@ pub struct Auth {
 #[derive(Debug, Serialize, Deserialize, Validate, InputObject)]
 pub struct LoginRequest {
     #[serde(deserialize_with = "trim_lowercase")]
-    #[validate(email(message = "Email must be valid"))]
-    pub email: String,
+    #[validate(length(
+        min = 2,
+        max = 50,
+        message = "Credential must be between 2 and 50 characters"
+    ))]
+    pub credential: String,
 
     #[validate(length(
         min = 2,
@@ -33,6 +37,15 @@ pub struct LoginRequest {
         message = "password must be between 2 and 64 characters"
     ))]
     pub password: String,
+}
+
+// =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+pub struct LoginResponse {
+    pub user_id: String,
+    pub email: String,
+    pub token: String,
 }
 
 // =============================================================================================================================
@@ -93,6 +106,15 @@ pub struct RegisterRequest {
 // =============================================================================================================================
 
 #[derive(Debug, Serialize, Deserialize, SimpleObject)]
+pub struct RegisterResponse {
+    pub user_id: String,
+    pub email: String,
+    pub token: String,
+}
+
+// =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUserInternalResponse {
     pub id: String,
@@ -102,6 +124,15 @@ pub struct CreateUserInternalResponse {
     pub email: String,
     #[serde(default)]
     pub class_ids: Vec<ObjectId>,
+}
+
+// =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+#[serde(rename_all = "camelCase")]
+pub struct GetUserByEmailOrPseudoInternalResponse {
+    pub id: String,
+    pub email: String,
 }
 
 // =============================================================================================================================

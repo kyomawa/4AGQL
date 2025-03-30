@@ -13,7 +13,10 @@ use mongodb::{
 };
 use validator::Validate;
 
-use crate::schema::{CreateUserRequest, UpdateUserRequest, User};
+use crate::{
+    request::delete_auth_by_user_id_request,
+    schema::{CreateUserRequest, UpdateUserRequest, User},
+};
 
 // =============================================================================================================================
 
@@ -147,7 +150,10 @@ impl MutationRoot {
         let id: ObjectId = ObjectId::parse_str(&token.user_id)?;
 
         match collection.find_one_and_delete(doc! {"_id": id}).await? {
-            Some(user) => Ok(user),
+            Some(user) => {
+                let _ = delete_auth_by_user_id_request(&user._id.unwrap().to_hex()).await;
+                Ok(user)
+            }
             None => Err("No user with this is was found".into()),
         }
     }
@@ -168,7 +174,10 @@ impl MutationRoot {
         let id = ObjectId::parse_str(&id)?;
 
         match collection.find_one_and_delete(doc! {"_id": id}).await? {
-            Some(user) => Ok(user),
+            Some(user) => {
+                let _ = delete_auth_by_user_id_request(&user._id.unwrap().to_hex()).await;
+                Ok(user)
+            }
             None => Err("No user with this is was found".into()),
         }
     }

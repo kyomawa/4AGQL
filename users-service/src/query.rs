@@ -74,7 +74,39 @@ impl QueryRoot {
         let id = ObjectId::parse_str(&id)?;
         match collection.find_one(doc! {"_id": id}).await? {
             Some(user) => Ok(user),
-            None => Err("Error retrieving user.".into()),
+            None => Err("No user with this id was found.".into()),
+        }
+    }
+
+    // =============================================================================================================================
+
+    async fn get_user_by_email_or_pseudo(
+        &self,
+        ctx: &Context<'_>,
+        credential: String,
+    ) -> Result<User> {
+        let token = ctx
+            .data_opt::<Claims>()
+            .ok_or("Unauthorized: token missing or invalid")?;
+        let required_roles = &[AuthRole::Admin];
+
+        user_has_any_of_these_roles(token, required_roles)?;
+
+        let db = ctx.data_unchecked::<Database>();
+        let collection = db.collection::<User>("users");
+
+        let credential = credential.to_lowercase();
+
+        let filter = doc! {
+            "$or": [
+                { "email": credential.clone() },
+                { "pseudo": credential }
+            ]
+        };
+
+        match collection.find_one(filter).await? {
+            Some(user) => Ok(user),
+            None => Err("No user with this email or pseudo was found.".into()),
         }
     }
 
