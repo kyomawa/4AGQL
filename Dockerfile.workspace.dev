@@ -14,3 +14,9 @@ FROM dev-base AS users-service
 WORKDIR /usr/src/app/users-service
 EXPOSE 8080
 CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]
+
+# Auth-service
+FROM dev-base AS auth-service
+WORKDIR /usr/src/app/auth-service
+EXPOSE 8080
+CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]

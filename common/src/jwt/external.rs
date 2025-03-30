@@ -1,15 +1,11 @@
-use std::env;
-
-use actix_web::{HttpRequest, http::header};
-use bson::oid::ObjectId;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
+use std::env;
 
-use crate::models::auth_service_models::AuthRole;
+use crate::schemas::AuthRole;
 
-use super::internal::decode_internal_jwt;
+use super::jwt_utils::Claims;
 
 // =============================================================================================================================
 
@@ -20,21 +16,13 @@ pub static JWT_EXTERNAL_SIGNATURE: Lazy<Vec<u8>> = Lazy::new(|| {
 
 // =============================================================================================================================
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExternalClaims {
-    pub user_id: String,
-    pub role: AuthRole,
-    pub exp: i64,
-}
-
-// =============================================================================================================================
-
 pub fn encode_external_jwt(user_id: String, role: AuthRole) -> Result<String, String> {
     let signature = JWT_EXTERNAL_SIGNATURE.as_slice();
-    let claims = ExternalClaims {
+    let claims = Claims {
+        internal: false,
         user_id,
         role,
-        exp: (Utc::now() + Duration::minutes(60)).timestamp(),
+        exp: (Utc::now() + Duration::minutes(120)).timestamp(),
     };
     encode(
         &Header::default(),
@@ -46,9 +34,9 @@ pub fn encode_external_jwt(user_id: String, role: AuthRole) -> Result<String, St
 
 // =============================================================================================================================
 
-pub fn decode_external_jwt(token: &str) -> Result<ExternalClaims, String> {
+pub fn decode_external_jwt(token: &str) -> Result<Claims, String> {
     let signature = JWT_EXTERNAL_SIGNATURE.as_slice();
-    decode::<ExternalClaims>(
+    decode::<Claims>(
         token,
         &DecodingKey::from_secret(signature),
         &Validation::default(),
@@ -59,48 +47,18 @@ pub fn decode_external_jwt(token: &str) -> Result<ExternalClaims, String> {
 
 // =============================================================================================================================
 
-pub fn get_external_jwt(req: &HttpRequest) -> Result<ExternalClaims, String> {
-    let auth_header = req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .ok_or("Missing Authorization header")?;
-
-    let auth_str = auth_header.to_str().map_err(|_| "Invalid header string")?;
-
-    let token = auth_str
-        .strip_prefix("Bearer ")
-        .ok_or("Invalid token format, expected Bearer")?;
-
-    if let Ok(internal_claims) = decode_internal_jwt(token) {
-        return Ok(ExternalClaims {
-            user_id: ObjectId::new().to_hex(),
-            role: AuthRole::Admin,
-            exp: internal_claims.exp,
-        });
-    }
-
-    decode_external_jwt(token)
+pub fn get_authenticated_user(token: &Claims) -> &Claims {
+    token
 }
 
 // =============================================================================================================================
 
-pub fn get_authenticated_user(req: &HttpRequest) -> Result<ExternalClaims, String> {
-    match get_external_jwt(req) {
-        Ok(user) => Ok(user),
-        Err(e) => Err(e),
-    }
-}
-
-// =============================================================================================================================
-
-pub fn user_has_any_of_these_roles(
-    req: &HttpRequest,
+pub fn user_has_any_of_these_roles<'a>(
+    token: &'a Claims,
     roles: &[AuthRole],
-) -> Result<ExternalClaims, String> {
-    let jwt_payload = get_authenticated_user(req)?;
-
-    if roles.contains(&jwt_payload.role) {
-        Ok(jwt_payload)
+) -> Result<&'a Claims, String> {
+    if roles.contains(&token.role) {
+        Ok(token)
     } else {
         Err("Access denied: insufficient role".to_string())
     }

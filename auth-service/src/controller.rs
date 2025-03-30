@@ -8,7 +8,7 @@ use crate::{mutation::MutationRoot, query::QueryRoot};
 // =============================================================================================================================
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    let scope = web::scope("/api/users").service(graphql_handler);
+    let scope = web::scope("/api/auth").service(graphql_handler);
 
     cfg.service(scope);
 }

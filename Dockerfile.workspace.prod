@@ -15,3 +15,11 @@ RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib
 COPY --from=builder /usr/src/app/target/release/users-service /usr/local/bin/
 EXPOSE 8080
 CMD ["users-service"]
+
+# Auth-service
+FROM debian:bullseye-slim AS auth-service
+WORKDIR /usr/local/bin
+RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/src/app/target/release/auth-service /usr/local/bin/
+EXPOSE 8080
+CMD ["auth-service"]
