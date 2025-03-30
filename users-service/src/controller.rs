@@ -1,5 +1,5 @@
-use actix_web::{HttpResponse, get, post, web};
-use async_graphql::{EmptySubscription, http::GraphQLPlaygroundConfig};
+use actix_web::{post, web};
+use async_graphql::EmptySubscription;
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 
 use crate::{mutation::MutationRoot, query::QueryRoot};
@@ -7,9 +7,7 @@ use crate::{mutation::MutationRoot, query::QueryRoot};
 // =============================================================================================================================
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    let scope = web::scope("/api/users")
-        .service(graphql_handler)
-        .service(playground);
+    let scope = web::scope("/api/users").service(graphql_handler);
 
     cfg.service(scope);
 }
@@ -24,14 +22,4 @@ async fn graphql_handler(
     schema.execute(req.into_inner()).await.into()
 }
 
-// =============================================================================================================================
-
-#[get("/playground")]
-async fn playground() -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(async_graphql::http::playground_source(
-            GraphQLPlaygroundConfig::new("/api/graphql"),
-        ))
-}
 // =============================================================================================================================

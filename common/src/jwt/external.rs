@@ -7,7 +7,7 @@ use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode}
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::models::auth_service_models::AuthRole;
+use crate::schemas::AuthRole;
 
 use super::internal::decode_internal_jwt;
 

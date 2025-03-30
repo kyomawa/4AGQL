@@ -1,5 +1,5 @@
 use actix_web::{App, HttpServer, web};
-use async_graphql::Schema;
+use async_graphql::{EmptySubscription, Schema};
 use controller::config;
 use db::init_db;
 use mutation::MutationRoot;
@@ -7,9 +7,9 @@ use query::QueryRoot;
 
 mod controller;
 mod db;
-mod model;
 mod mutation;
 mod query;
+mod schema;
 
 // =============================================================================================================================
 
@@ -19,8 +19,8 @@ async fn main() -> std::io::Result<()> {
 
     let db = init_db().await.expect("❌ Failed to connect to database");
 
-    let graphql_schema = Schema::build(QueryRoot, MutationRoot, async_graphql::EmptySubscription)
-        .data(db.clone())
+    let graphql_schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(db)
         .finish();
 
     HttpServer::new(move || {
