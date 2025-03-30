@@ -1,4 +1,8 @@
 use async_graphql::*;
+use common::{
+    jwt::external::{ExternalClaims, user_has_any_of_these_roles},
+    schemas::AuthRole,
+};
 use futures_util::TryStreamExt;
 use mongodb::{
     Cursor, Database,
@@ -29,6 +33,13 @@ impl QueryRoot {
     }
 
     async fn get_users(&self, ctx: &Context<'_>) -> Result<Vec<User>> {
+        let token = ctx
+            .data_opt::<ExternalClaims>()
+            .ok_or("Unauthorized: token missing or invalid")?;
+        let required_roles = &[AuthRole::Admin];
+
+        user_has_any_of_these_roles(token, required_roles)?;
+
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<User>("users");
 

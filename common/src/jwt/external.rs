@@ -1,15 +1,10 @@
-use std::env;
-
-use actix_web::{HttpRequest, http::header};
-use bson::oid::ObjectId;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::env;
 
 use crate::schemas::AuthRole;
-
-use super::internal::decode_internal_jwt;
 
 // =============================================================================================================================
 
@@ -59,48 +54,18 @@ pub fn decode_external_jwt(token: &str) -> Result<ExternalClaims, String> {
 
 // =============================================================================================================================
 
-pub fn get_external_jwt(req: &HttpRequest) -> Result<ExternalClaims, String> {
-    let auth_header = req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .ok_or("Missing Authorization header")?;
-
-    let auth_str = auth_header.to_str().map_err(|_| "Invalid header string")?;
-
-    let token = auth_str
-        .strip_prefix("Bearer ")
-        .ok_or("Invalid token format, expected Bearer")?;
-
-    if let Ok(internal_claims) = decode_internal_jwt(token) {
-        return Ok(ExternalClaims {
-            user_id: ObjectId::new().to_hex(),
-            role: AuthRole::Admin,
-            exp: internal_claims.exp,
-        });
-    }
-
-    decode_external_jwt(token)
+pub fn get_authenticated_user(token: &ExternalClaims) -> &ExternalClaims {
+    token
 }
 
 // =============================================================================================================================
 
-pub fn get_authenticated_user(req: &HttpRequest) -> Result<ExternalClaims, String> {
-    match get_external_jwt(req) {
-        Ok(user) => Ok(user),
-        Err(e) => Err(e),
-    }
-}
-
-// =============================================================================================================================
-
-pub fn user_has_any_of_these_roles(
-    req: &HttpRequest,
+pub fn user_has_any_of_these_roles<'a>(
+    token: &'a ExternalClaims,
     roles: &[AuthRole],
-) -> Result<ExternalClaims, String> {
-    let jwt_payload = get_authenticated_user(req)?;
-
-    if roles.contains(&jwt_payload.role) {
-        Ok(jwt_payload)
+) -> Result<&'a ExternalClaims, String> {
+    if roles.contains(&token.role) {
+        Ok(token)
     } else {
         Err("Access denied: insufficient role".to_string())
     }

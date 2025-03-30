@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  # "auth-service",
+  "auth-service",
   "common",
   "users-service",
   # "classes-service",
