@@ -1,17 +1,18 @@
-FROM node:lts-alpine
-
-RUN apk update && apk add --no-cache wget
-
-RUN npm install -g http-server
+FROM node:lts-alpine as builder
 
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm install
-
 COPY . .
 RUN npm run build
 
-EXPOSE 5173
+FROM node:lts-alpine
 
+RUN apk update && apk add --no-cache wget
+RUN npm install -g http-server
+
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 5173
 CMD [ "http-server", "dist", "-p", "5173" ]
