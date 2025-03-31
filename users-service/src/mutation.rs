@@ -1,3 +1,4 @@
+use ::http::header::HeaderName;
 use async_graphql::*;
 use common::{
     jwt::{
@@ -14,7 +15,9 @@ use mongodb::{
 use validator::Validate;
 
 use crate::{
-    request::delete_auth_by_user_id_request,
+    request::{
+        delete_auth_by_user_id_request, delete_user_grades_request, remove_user_from_all_classes,
+    },
     schema::{CreateUserRequest, UpdateUserRequest, User},
 };
 
@@ -146,16 +149,26 @@ impl MutationRoot {
 
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<User>("users");
+        let user_oid = ObjectId::parse_str(&token.user_id)?;
 
-        let id: ObjectId = ObjectId::parse_str(&token.user_id)?;
+        let user = collection
+            .find_one_and_delete(doc! {"_id": user_oid})
+            .await?
+            .ok_or("No user with this id was found")?;
 
-        match collection.find_one_and_delete(doc! {"_id": id}).await? {
-            Some(user) => {
-                let _ = delete_auth_by_user_id_request(&user._id.unwrap().to_hex()).await;
-                Ok(user)
-            }
-            None => Err("No user with this is was found".into()),
-        }
+        let _ = delete_auth_by_user_id_request(&user._id.as_ref().unwrap().to_hex()).await;
+        let _ = delete_user_grades_request(&token.user_id).await;
+        let _ = remove_user_from_all_classes(&user, &token.user_id).await;
+
+        let mut cookie = actix_web::cookie::Cookie::build("session_token", "unused")
+            .path("/")
+            .http_only(true)
+            .finish();
+        cookie.make_removal();
+        let set_cookie = HeaderName::from_static("set-cookie");
+        ctx.append_http_header(set_cookie, cookie.to_string());
+
+        Ok(user)
     }
 
     // =============================================================================================================================
@@ -165,21 +178,22 @@ impl MutationRoot {
             .data_opt::<Claims>()
             .ok_or("Unauthorized: token missing or invalid")?;
         let required_roles = &[AuthRole::Admin];
-
         user_has_any_of_these_roles(token, required_roles)?;
 
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<User>("users");
+        let user_oid = ObjectId::parse_str(&id)?;
 
-        let id = ObjectId::parse_str(&id)?;
+        let user = collection
+            .find_one_and_delete(doc! {"_id": user_oid})
+            .await?
+            .ok_or("No user with this id was found")?;
 
-        match collection.find_one_and_delete(doc! {"_id": id}).await? {
-            Some(user) => {
-                let _ = delete_auth_by_user_id_request(&user._id.unwrap().to_hex()).await;
-                Ok(user)
-            }
-            None => Err("No user with this is was found".into()),
-        }
+        let _ = delete_auth_by_user_id_request(&user._id.as_ref().unwrap().to_hex()).await;
+        let _ = delete_user_grades_request(&token.user_id).await;
+        let _ = remove_user_from_all_classes(&user, &token.user_id).await;
+
+        Ok(user)
     }
 }
 

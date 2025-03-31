@@ -124,3 +124,53 @@ services:
       - "traefik.http.routers.auth.priority=10"
     networks:
       - 4agql_network_prod
+
+  grades-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace.prod
+      target: grades-service
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-X", "POST", "http://localhost:8080/api/grades/graphql", "-H", "Content-Type: application/json", "-d", "{\"query\":\"{ healthCheck }\"}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    environment:
+      JWT_INTERNAL_SIGNATURE: ${JWT_INTERNAL_SIGNATURE}
+      JWT_EXTERNAL_SIGNATURE: ${JWT_EXTERNAL_SIGNATURE}
+      DATABASE_URL_GRADES_SERVICE: ${DATABASE_URL_GRADES_SERVICE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grades.rule=PathPrefix(`/api/grades`)"
+      - "traefik.http.routers.grades.entrypoints=http"
+      - "traefik.http.services.grades.loadbalancer.server.port=8080"
+      - "traefik.http.routers.grades.priority=10"
+    networks:
+      - 4agql_network_prod
+
+  classes-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace.prod
+      target: classes-service
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-X", "POST", "http://localhost:8080/api/classes/graphql", "-H", "Content-Type: application/json", "-d", "{\"query\":\"{ healthCheck }\"}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    environment:
+      JWT_INTERNAL_SIGNATURE: ${JWT_INTERNAL_SIGNATURE}
+      JWT_EXTERNAL_SIGNATURE: ${JWT_EXTERNAL_SIGNATURE}
+      DATABASE_URL_CLASSES_SERVICE: ${DATABASE_URL_CLASSES_SERVICE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.classes.rule=PathPrefix(`/api/classes`)"
+      - "traefik.http.routers.classes.entrypoints=http"
+      - "traefik.http.services.classes.loadbalancer.server.port=8080"
+      - "traefik.http.routers.classes.priority=10"
+    networks:
+      - 4agql_network_prod

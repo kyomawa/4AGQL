@@ -700,6 +700,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "classes-service"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "async-graphql",
+ "async-graphql-actix-web",
+ "common",
+ "dotenv",
+ "futures-util",
+ "mongodb",
+ "serde",
+ "serde_json",
+ "validator",
+]
+
+[[package]]
 name = "common"
 version = "0.1.0"
 dependencies = [
@@ -1210,6 +1226,22 @@ name = "gimli"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
+
+[[package]]
+name = "grades-service"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "async-graphql",
+ "async-graphql-actix-web",
+ "common",
+ "dotenv",
+ "futures-util",
+ "mongodb",
+ "serde",
+ "serde_json",
+ "validator",
+]
 
 [[package]]
 name = "h2"
@@ -3303,6 +3335,7 @@ dependencies = [
  "common",
  "dotenv",
  "futures-util",
+ "http 1.3.1",
  "mongodb",
  "serde",
  "serde_json",
