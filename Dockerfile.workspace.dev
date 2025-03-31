@@ -20,3 +20,9 @@ FROM dev-base AS auth-service
 WORKDIR /usr/src/app/auth-service
 EXPOSE 8080
 CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]
+
+# Grades-service
+FROM dev-base AS grades-service
+WORKDIR /usr/src/app/grades-service
+EXPOSE 8080
+CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]
