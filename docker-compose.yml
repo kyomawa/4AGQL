@@ -131,5 +131,65 @@ services:
       - "traefik.http.services.auth.loadbalancer.server.port=8080"
       - "traefik.http.routers.auth.priority=10"
 
+  grades-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace.dev
+      target: grades-service
+    volumes:
+      - ./grades-service:/usr/src/app/grades-service
+      - ./common:/usr/src/app/common
+      - target-volume:/usr/src/app/target
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-X", "POST", "http://localhost:8080/api/grades/graphql", "-H", "Content-Type: application/json", "-d", "{\"query\":\"{ healthCheck }\"}"]
+      interval: 12s
+      timeout: 7s
+      retries: 20
+      start_period: 240s
+    networks:
+      - 4agql_network_dev
+    environment:
+      JWT_INTERNAL_SIGNATURE: ${JWT_INTERNAL_SIGNATURE}
+      JWT_EXTERNAL_SIGNATURE: ${JWT_EXTERNAL_SIGNATURE}
+      DATABASE_URL_GRADES_SERVICE: ${DATABASE_URL_GRADES_SERVICE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grades.rule=PathPrefix(`/api/grades`)"
+      - "traefik.http.routers.grades.entrypoints=web"
+      - "traefik.http.services.grades.loadbalancer.server.port=8080"
+      - "traefik.http.routers.grades.priority=10"
+
+  classes-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace.dev
+      target: classes-service
+    volumes:
+      - ./classes-service:/usr/src/app/classes-service
+      - ./common:/usr/src/app/common
+      - target-volume:/usr/src/app/target
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-X", "POST", "http://localhost:8080/api/classes/graphql", "-H", "Content-Type: application/json", "-d", "{\"query\":\"{ healthCheck }\"}"]
+      interval: 12s
+      timeout: 7s
+      retries: 20
+      start_period: 240s
+    networks:
+      - 4agql_network_dev
+    environment:
+      JWT_INTERNAL_SIGNATURE: ${JWT_INTERNAL_SIGNATURE}
+      JWT_EXTERNAL_SIGNATURE: ${JWT_EXTERNAL_SIGNATURE}
+      DATABASE_URL_CLASSES_SERVICE: ${DATABASE_URL_CLASSES_SERVICE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.classes.rule=PathPrefix(`/api/classes`)"
+      - "traefik.http.routers.classes.entrypoints=web"
+      - "traefik.http.services.classes.loadbalancer.server.port=8080"
+      - "traefik.http.routers.classes.priority=10"
+
 volumes:
   target-volume:

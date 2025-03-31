@@ -642,6 +642,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "classes-service"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "async-graphql",
+ "async-graphql-actix-web",
+ "common",
+ "dotenv",
+ "futures-util",
+ "mongodb",
+ "serde",
+ "serde_json",
+ "validator",
+]
+
+[[package]]
 name = "common"
 version = "0.1.0"
 dependencies = [
@@ -3224,23 +3240,6 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
-]
-
-[[package]]
-name = "users-service"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "async-graphql",
- "async-graphql-actix-web",
- "common",
- "dotenv",
- "futures-util",
- "http 1.3.1",
- "mongodb",
- "serde",
- "serde_json",
- "validator",
 ]
 
 [[package]]

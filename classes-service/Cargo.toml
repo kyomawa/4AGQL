@@ -1,10 +1,9 @@
 [package]
-name = "users-service"
+name = "classes-service"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-http = "1.3.1"
 actix-web = "4"
 async-graphql = { version = "7.0.16", features = ["bson", "chrono"] }
 async-graphql-actix-web = "7.0.16"

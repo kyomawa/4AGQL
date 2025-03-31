@@ -3,7 +3,7 @@ members = [
   "auth-service",
   "common",
   "users-service",
-  # "classes-service",
-  # "grades-service",
+  "grades-service",
+  "classes-service",
 ]
 resolver = "3"
