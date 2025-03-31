@@ -31,3 +31,11 @@ RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib
 COPY --from=builder /usr/src/app/target/release/grades-service /usr/local/bin/
 EXPOSE 8080
 CMD ["grades-service"]
+
+# Classes-service
+FROM debian:bullseye-slim AS classes-service
+WORKDIR /usr/local/bin
+RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/src/app/target/release/classes-service /usr/local/bin/
+EXPOSE 8080
+CMD ["classes-service"]

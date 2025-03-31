@@ -26,3 +26,9 @@ FROM dev-base AS grades-service
 WORKDIR /usr/src/app/grades-service
 EXPOSE 8080
 CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]
+
+# Classes-service
+FROM dev-base AS classes-service
+WORKDIR /usr/src/app/classes-service
+EXPOSE 8080
+CMD ["cargo", "watch", "--poll", "-i", "1", "-x", "run"]

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-The Grades Service manages all operations related to student grades for the Schoolnc ltd project. This service provides a GraphQL API that allows users to retrieve their grades while enabling professors and administrators to create, update, and delete grade records. It ensures that students only see their own grades, whereas professors have controlled access based on class assignments and ownership of the grade record.
+The Grades Service manages all operations related to student grades for the Schoolnc ltd project. This service provides a GraphQL API that allows users to retrieve their grades while enabling professors and administrators to create, update, and delete grade records. It ensures that students only see their own grades, whereas professors have controlled access based on class assignments and record ownership, and administrators have full access.
 
 ## Key Features
 
@@ -13,12 +13,12 @@ The Grades Service manages all operations related to student grades for the Scho
   - **Students:** Can view only their own grades.
   - **Professors:** Can create, update, and delete grade records, but only if the grade belongs to a student enrolled in one of the classes they teach, and only if they originally created the record.
   - **Administrators:** Have full access to view, create, update, and delete any grade record.
-
+  
 - **Filtering Capabilities:**  
   Retrieve grades filtered by a specific course if provided.
 
 - **GraphQL API:**  
-  All operations are exposed via a GraphQL endpoint for flexible queries and mutations.
+  All operations are exposed via a GraphQL endpoint, offering flexible queries and mutations.
 
 - **Health Check:**  
   A dedicated `healthCheck` query is available to confirm that the service is operational.
@@ -63,8 +63,8 @@ The Grades Service integrates with the API Gateway (Traefik) and interacts with 
 - **Mutation:** `create_grade(grade: CreateGradeRequest) → Grade`  
   _Description:_ Create a new grade record for a course.  
   **Note:** Ensure that the user with the provided `user_id` exists.  
-  _Access:_ Restricted to **PROFESSOR or ADMIN**.
-  - **Additional Note for Professors:** A professor can only create a grade if he belong to the class of the grade. A professor can only create a grade with his own id (not another professor_id). The creating professor's ID is stored with the grade record to enforce that only the creator can later modify it.
+  _Access:_ Restricted to **PROFESSOR or ADMIN**.  
+  _Additional Note for Professors:_ A professor can only create a grade if they belong to the class of the grade and can only create a grade using their own ID (not another professor's). The creating professor's ID is stored with the grade record to enforce that only the creator can later modify it.
 
 - **Mutation:** `update_grade_by_id(id: String, input: UpdateGradeRequest) → Grade`  
   _Description:_ Update an existing grade record.  
@@ -76,6 +76,10 @@ The Grades Service integrates with the API Gateway (Traefik) and interacts with 
 - **Mutation:** `delete_grade_by_id(id: String) → Grade`  
   _Description:_ Delete a grade record.  
   **Note:**  
-  - A professor can only delete a grade record if they originally created the grade.  
+  - A professor can only delete a grade record if they originally created it.  
   - ADMINs can delete any grade record.
   _Access:_ Restricted to **PROFESSOR or ADMIN**.
+
+- **Mutation:** `delete_grades_by_user_id(user_id: String) → Vec<Grade>`  
+  _Description:_ Delete all grade records associated with the specified user ID (triggered when a user is deleted).  
+  _Access:_ **Internal** (accessible only by system processes or authorized administrative actions).

@@ -4,9 +4,13 @@ use crate::{
 };
 use async_graphql::*;
 use common::{
-    jwt::{external::user_has_any_of_these_roles, jwt_utils::Claims},
+    jwt::{
+        external::user_has_any_of_these_roles, internal::authenticate_internal_request,
+        jwt_utils::Claims,
+    },
     schemas::AuthRole,
 };
+use futures_util::TryStreamExt;
 use mongodb::{
     Database,
     bson::{doc, oid::ObjectId},
@@ -140,6 +144,33 @@ impl MutationRoot {
             .ok_or("No grade with this id was found")?;
 
         Ok(deleted)
+    }
+
+    // =============================================================================================================================
+
+    async fn delete_grades_by_user_id(
+        &self,
+        ctx: &Context<'_>,
+        user_id: String,
+    ) -> Result<Vec<Grade>> {
+        let token = ctx
+            .data_opt::<Claims>()
+            .ok_or("Unauthorized: token missing or invalid")?;
+        authenticate_internal_request(token)?;
+
+        let db = ctx.data_unchecked::<Database>();
+        let collection = db.collection::<Grade>("grades");
+
+        let filter = doc! {
+            "user_id": ObjectId::parse_str(&user_id)?
+        };
+
+        let cursor = collection.find(filter.clone()).await?;
+        let grades: Vec<Grade> = cursor.try_collect().await?;
+
+        collection.delete_many(filter).await?;
+
+        Ok(grades)
     }
 }
 
