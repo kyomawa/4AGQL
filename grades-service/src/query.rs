@@ -34,9 +34,16 @@ impl QueryRoot {
             filter.insert("course", course_name);
         }
 
-        if token.role != AuthRole::Professor && token.role != AuthRole::Admin {
-            let user_oid = ObjectId::parse_str(&token.user_id)?;
-            filter.insert("user_id", user_oid);
+        match token.role {
+            AuthRole::Admin => {}
+            AuthRole::Professor => {
+                let professor_oid = ObjectId::parse_str(&token.user_id)?;
+                filter.insert("professor_id", professor_oid);
+            }
+            AuthRole::User => {
+                let user_oid = ObjectId::parse_str(&token.user_id)?;
+                filter.insert("user_id", user_oid);
+            }
         }
 
         let cursor: Cursor<Grade> = collection.find(filter).await?;
@@ -60,10 +67,23 @@ impl QueryRoot {
             .await?
             .ok_or("No grade with this id was found")?;
 
-        if token.role != AuthRole::Professor && token.role != AuthRole::Admin {
-            let token_oid = ObjectId::parse_str(&token.user_id)?;
-            if grade.user_id != token_oid {
-                return Err("Unauthorized: You do not have permission to view this grade".into());
+        match token.role {
+            AuthRole::Admin => {}
+            AuthRole::Professor => {
+                let professor_oid = ObjectId::parse_str(&token.user_id)?;
+                if grade.professor_id != professor_oid {
+                    return Err(
+                        "Unauthorized: You can only view grades from your own classes".into(),
+                    );
+                }
+            }
+            AuthRole::User => {
+                let user_oid = ObjectId::parse_str(&token.user_id)?;
+                if grade.user_id != user_oid {
+                    return Err(
+                        "Unauthorized: You do not have permission to view this grade".into(),
+                    );
+                }
             }
         }
 

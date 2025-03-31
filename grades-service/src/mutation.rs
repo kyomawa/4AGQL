@@ -1,5 +1,5 @@
 use crate::{
-    request::check_user_exists,
+    request::{check_professor_class_membership, check_user_exists},
     schema::{CreateGradeRequest, Grade, UpdateGradeRequest},
 };
 use async_graphql::*;
@@ -29,18 +29,30 @@ impl MutationRoot {
 
         check_user_exists(&grade.user_id).await?;
 
+        if token.role == AuthRole::Professor {
+            if token.user_id != grade.professor_id {
+                return Err("Unauthorized: A professor can only create a grade with their own ID as professor_id".into());
+            }
+            check_professor_class_membership(&grade.professor_id, &grade.class_id).await?;
+        }
+
         grade.validate()?;
 
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<Grade>("grades");
 
         let user_oid = ObjectId::parse_str(&grade.user_id)?;
+        let professor_oid = ObjectId::parse_str(&grade.professor_id)?;
+        let class_oid = ObjectId::parse_str(&grade.class_id)?;
 
         let mut new_grade = Grade {
             _id: None,
             course: grade.course,
+            note: grade.note,
             grade: grade.grade,
             user_id: user_oid,
+            professor_id: professor_oid,
+            class_id: class_oid,
         };
 
         let res = collection.insert_one(&new_grade).await?;
@@ -56,7 +68,7 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         id: String,
-        input: UpdateGradeRequest,
+        grade: UpdateGradeRequest,
     ) -> Result<Grade> {
         let token = ctx
             .data_opt::<Claims>()
@@ -64,16 +76,28 @@ impl MutationRoot {
         let required_roles = &[AuthRole::Professor, AuthRole::Admin];
         user_has_any_of_these_roles(token, required_roles)?;
 
-        input.validate()?;
+        grade.validate()?;
 
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<Grade>("grades");
         let oid = ObjectId::parse_str(&id)?;
 
+        let existing_grade = collection
+            .find_one(doc! { "_id": oid })
+            .await?
+            .ok_or("No grade with this id was found")?;
+
+        if token.role == AuthRole::Professor
+            && token.user_id != existing_grade.professor_id.to_hex()
+        {
+            return Err("Unauthorized: You can only update a grade that you created".into());
+        }
+
         let update_doc = doc! {
             "$set": {
-                "course": input.course,
-                "grade": input.grade,
+                "course": grade.course,
+                "note": grade.note,
+                "grade": grade.grade,
             }
         };
 
@@ -98,6 +122,17 @@ impl MutationRoot {
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<Grade>("grades");
         let oid = ObjectId::parse_str(&id)?;
+
+        let existing_grade = collection
+            .find_one(doc! { "_id": oid })
+            .await?
+            .ok_or("No grade with this id was found")?;
+
+        if token.role == AuthRole::Professor
+            && token.user_id != existing_grade.professor_id.to_hex()
+        {
+            return Err("Unauthorized: You can only delete a grade that you created".into());
+        }
 
         let deleted = collection
             .find_one_and_delete(doc! {"_id": oid})

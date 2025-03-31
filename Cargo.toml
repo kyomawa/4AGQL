@@ -4,6 +4,6 @@ members = [
   "common",
   "users-service",
   "grades-service",
-  # "classes-service",
+  "classes-service",
 ]
 resolver = "3"
