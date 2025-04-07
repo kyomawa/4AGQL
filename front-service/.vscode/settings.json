@@ -1,0 +1,16 @@
+{
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"volar.takeOverMode.enabled": true,
+	"volar.autoCompleteRefs": false,
+	"volar.inlayHints.eventArgumentInInlineHandlers": false,
+	"volar.completion.normalizeComponentImportName": true,
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+	"javascript.preferences.importModuleSpecifier": "non-relative",
+	"[vue]": {
+		"editor.defaultFormatter": "Vue.volar"
+	}
+}

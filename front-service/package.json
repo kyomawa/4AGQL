@@ -1,28 +1,42 @@
 {
-  "name": "front-service",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --fix",
-    "format": "prettier --write src/"
-  },
-  "dependencies": {
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.21.0",
-    "@vitejs/plugin-vue": "^5.2.1",
-    "@vue/eslint-config-prettier": "^10.2.0",
-    "eslint": "^9.21.0",
-    "eslint-plugin-vue": "~10.0.0",
-    "globals": "^16.0.0",
-    "prettier": "3.5.3",
-    "vite": "^6.2.1",
-    "vite-plugin-vue-devtools": "^7.7.2"
-  }
+	"name": "nuxt-starter",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "nuxt build",
+		"dev": "nuxt dev",
+		"generate": "nuxt generate",
+		"preview": "nuxt preview",
+		"postinstall": "nuxt prepare",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"format": "prettier --write ."
+	},
+	"dependencies": {
+		"run": "^1.5.0",
+		"vue": "^3.4.19",
+		"vue-router": "^4.2.5"
+	},
+	"devDependencies": {
+		"@apollo/client": "^3.13.6",
+		"@graphql-tools/schema": "^10.0.23",
+		"@nuxt/eslint": "^1.2.0",
+		"@nuxt/ui": "^3.0.2",
+		"@nuxtjs/tailwindcss": "6.13.2",
+		"@types/node": "^22.14.0",
+		"@vue/apollo-composable": "^4.2.2",
+		"@vue/runtime-core": "^3.5.13",
+		"@vue/typescript-plugin": "^2.2.8",
+		"eslint-plugin-tailwindcss": "^3.14.2",
+		"graphql": "^16.10.0",
+		"graphql-tag": "^2.12.6",
+		"nuxt": "^3.16.0",
+		"prettier": "^3.2.5",
+		"typescript": "^5.8.3",
+		"vue": "^3.5.13",
+		"vue-router": "^4.5.0",
+		"vue-tsc": "^2.2.8"
+	},
+	"packageManager": "pnpm@8.7.5+sha1.735d4d0e6fc66c4d2d64b269b08e5995b19230ca"
 }
