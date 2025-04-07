@@ -20,7 +20,7 @@ The Front Service is the user interface component of the Schoolnc ltd project. T
 
 ## Technology Stack
 
-- **Framework:** Vue.js
+- **Framework:** Nuxt
 - **Communication:** GraphQL (via API Gateway)
 - **Styling & UI Components:** TailwindCss, ShadcnUI
 
