@@ -68,6 +68,13 @@ impl QueryRoot {
     // =============================================================================================================================
 
     async fn get_user_by_id(&self, ctx: &Context<'_>, id: String) -> Result<User> {
+        let token = ctx
+            .data_opt::<Claims>()
+            .ok_or("Unauthorized: token missing or invalid")?;
+        let required_roles = &[AuthRole::Admin, AuthRole::Professor];
+
+        user_has_any_of_these_roles(token, required_roles)?;
+
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<User>("users");
 

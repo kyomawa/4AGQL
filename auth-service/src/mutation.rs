@@ -10,7 +10,8 @@ use common::{
 };
 use mongodb::{
     Database,
-    bson::{doc, oid::ObjectId},
+    bson::{doc, oid::ObjectId, to_bson},
+    options::ReturnDocument,
 };
 use serde_json::json;
 use std::{thread, time::Duration};
@@ -18,7 +19,7 @@ use validator::Validate;
 
 use crate::schema::{
     Auth, CreateUserInternalResponse, GetUserByEmailOrPseudoInternalResponse, LoginRequest,
-    LoginResponse, RegisterRequest, RegisterResponse,
+    LoginResponse, RegisterRequest, RegisterResponse, UpdateRoleRequest,
 };
 
 // =============================================================================================================================
@@ -175,6 +176,40 @@ impl MutationRoot {
         Ok(json!({
             "message": "Logged out successfully"
         }))
+    }
+
+    // =============================================================================================================================
+
+    async fn update_role(
+        &self,
+        ctx: &Context<'_>,
+        user_id: String,
+        role: UpdateRoleRequest,
+    ) -> Result<Auth> {
+        let token = ctx
+            .data_opt::<Claims>()
+            .ok_or("Forbidden: token invalid or missing")?;
+        authenticate_internal_request(token)?;
+
+        let db = ctx.data_unchecked::<Database>();
+        let collection = db.collection::<Auth>("auth");
+        let role = to_bson(&role.role)?;
+
+        let user_id = ObjectId::parse_str(&user_id)?;
+        let update_doc = doc! {
+            "$set": {
+                "role": role,
+            }
+        };
+
+        match collection
+            .find_one_and_update(doc! {"user_id": user_id}, update_doc)
+            .return_document(ReturnDocument::After)
+            .await?
+        {
+            Some(auth) => Ok(auth),
+            None => Err("No auth credentials found for the given user_id".into()),
+        }
     }
 
     // =============================================================================================================================

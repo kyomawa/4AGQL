@@ -6,19 +6,21 @@ use common::{
         jwt_utils::Claims,
     },
     schemas::AuthRole,
+    utils::send_graphql_request,
 };
 use mongodb::{
     Database,
     bson::{doc, oid::ObjectId},
     options::ReturnDocument,
 };
+use serde_json::json;
 use validator::Validate;
 
 use crate::{
     request::{
         delete_auth_by_user_id_request, delete_user_grades_request, remove_user_from_all_classes,
     },
-    schema::{CreateUserRequest, UpdateUserRequest, User},
+    schema::{CreateUserRequest, UpdateCurrentUserRequest, UpdateUserRequest, User},
 };
 
 // =============================================================================================================================
@@ -60,7 +62,7 @@ impl MutationRoot {
     async fn update_current_user(
         &self,
         ctx: &Context<'_>,
-        user: UpdateUserRequest,
+        user: UpdateCurrentUserRequest,
     ) -> Result<User> {
         let token = ctx
             .data_opt::<Claims>()
@@ -73,16 +75,12 @@ impl MutationRoot {
 
         let id = ObjectId::parse_str(&token.user_id)?;
 
-        let mut set_doc = doc! {
+        let set_doc = doc! {
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email": user.email,
             "pseudo": user.pseudo,
         };
-
-        if token.role == AuthRole::Admin {
-            set_doc.insert("class_ids", user.class_ids);
-        }
 
         let update_doc = doc! {
             "$set": set_doc,
@@ -120,13 +118,19 @@ impl MutationRoot {
 
         let id = ObjectId::parse_str(&id)?;
 
+        let auth_role_str = match user.role {
+            AuthRole::User => "USER",
+            AuthRole::Professor => "PROFESSOR",
+            AuthRole::Admin => "ADMIN",
+        }
+        .to_string();
+
         let update_doc = doc! {
             "$set": {
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "email": user.email,
                 "pseudo": user.pseudo,
-                "class_ids": user.class_ids,
             }
         };
 
@@ -135,7 +139,30 @@ impl MutationRoot {
             .return_document(ReturnDocument::After)
             .await?
         {
-            Some(user) => Ok(user),
+            Some(user) => {
+                let payload = json!({
+                    "query": r#"
+                        mutation UpdateRole($userId: String!, $role: AuthRole!) {
+                            updateRole(userId: $userId, role: $role) {
+                                id
+                            }
+                        }
+                    "#,
+                    "variables": {
+                        "userId": user._id.as_ref().unwrap().to_hex(),
+                        "role": { "role": auth_role_str }
+                    }
+                });
+
+                let _ = send_graphql_request::<serde_json::Value>(
+                    "http://auth-service:8080/api/auth/graphql",
+                    &payload,
+                    "updateRole",
+                )
+                .await?;
+
+                Ok(user)
+            }
             None => Err("No user with this id was found".into()),
         }
     }

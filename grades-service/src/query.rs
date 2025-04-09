@@ -89,6 +89,94 @@ impl QueryRoot {
 
         Ok(grade)
     }
+
+    // =============================================================================================================================
+
+    async fn get_grades_by_user_id(
+        &self,
+        ctx: &Context<'_>,
+        user_id: String,
+    ) -> Result<Vec<Grade>> {
+        let token = ctx
+            .data_opt::<Claims>()
+            .ok_or("Unauthorized: token missing or invalid")?;
+
+        let db = ctx.data_unchecked::<Database>();
+        let collection = db.collection::<Grade>("grades");
+
+        let filter = match token.role {
+            AuthRole::Admin => {
+                doc! {
+                    "$or": [
+                        { "user_id": ObjectId::parse_str(&user_id)? },
+                        { "professor_id": ObjectId::parse_str(&user_id)? }
+                    ]
+                }
+            }
+            AuthRole::Professor => {
+                let professor_oid = ObjectId::parse_str(&token.user_id)?;
+                if professor_oid != ObjectId::parse_str(&user_id)? {
+                    return Err("Unauthorized: You can only view your own grades".into());
+                }
+                doc! { "professor_id": professor_oid }
+            }
+            AuthRole::User => {
+                let user_oid = ObjectId::parse_str(&token.user_id)?;
+                if user_oid != ObjectId::parse_str(&user_id)? {
+                    return Err("Unauthorized: You can only view your own grades".into());
+                }
+                doc! { "user_id": user_oid }
+            }
+        };
+
+        let cursor: Cursor<Grade> = collection.find(filter).await?;
+        let grades: Vec<Grade> = cursor.try_collect().await?;
+        Ok(grades)
+    }
+
+    // =============================================================================================================================
+
+    async fn get_grade_by_class_id(
+        &self,
+        ctx: &Context<'_>,
+        class_id: String,
+    ) -> Result<Vec<Grade>> {
+        let token = ctx
+            .data_opt::<Claims>()
+            .ok_or("Unauthorized: token missing or invalid")?;
+
+        let db = ctx.data_unchecked::<Database>();
+        let collection = db.collection::<Grade>("grades");
+
+        let filter = match token.role {
+            AuthRole::Admin => {
+                doc! {
+                    "$or": [
+                        { "class_id": ObjectId::parse_str(&class_id)? },
+                        { "professor_id": ObjectId::parse_str(&class_id)? }
+                    ]
+                }
+            }
+            AuthRole::Professor => {
+                let professor_oid = ObjectId::parse_str(&token.user_id)?;
+                if professor_oid != ObjectId::parse_str(&class_id)? {
+                    return Err("Unauthorized: You can only view your own grades".into());
+                }
+                doc! { "professor_id": professor_oid }
+            }
+            AuthRole::User => {
+                let user_oid = ObjectId::parse_str(&token.user_id)?;
+                if user_oid != ObjectId::parse_str(&class_id)? {
+                    return Err("Unauthorized: You can only view your own grades".into());
+                }
+                doc! { "user_id": user_oid }
+            }
+        };
+
+        let cursor: Cursor<Grade> = collection.find(filter).await?;
+        let grades: Vec<Grade> = cursor.try_collect().await?;
+        Ok(grades)
+    }
 }
 
 // =============================================================================================================================
