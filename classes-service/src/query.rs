@@ -55,12 +55,19 @@ impl QueryRoot {
                 "variables": variables,
             });
 
-            let professor_names: GetUserFirstAndLastNameResponse = send_graphql_request(
+            let professor_names: GetUserFirstAndLastNameResponse = match send_graphql_request(
                 "http://users-service:8080/api/users/graphql",
                 &payload,
                 "getUserById",
             )
-            .await?;
+            .await
+            {
+                Ok(names) => names,
+                Err(_) => GetUserFirstAndLastNameResponse {
+                    first_name: "Utilisateur".to_string(),
+                    last_name: "Supprimé".to_string(),
+                },
+            };
 
             let class_with_names = ClassWithCreatorNames {
                 _id: class._id,
@@ -113,12 +120,19 @@ impl QueryRoot {
             "variables": variables,
         });
 
-        let professor_names: GetUserFirstAndLastNameResponse = send_graphql_request(
+        let professor_names: GetUserFirstAndLastNameResponse = match send_graphql_request(
             "http://users-service:8080/api/users/graphql",
             &payload,
             "getUserById",
         )
-        .await?;
+        .await
+        {
+            Ok(names) => names,
+            Err(_) => GetUserFirstAndLastNameResponse {
+                first_name: "Utilisateur".to_string(),
+                last_name: "Supprimé".to_string(),
+            },
+        };
 
         let class = ClassWithCreatorNames {
             _id: class._id,
