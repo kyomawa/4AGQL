@@ -4,22 +4,25 @@ import { useAuth } from './useAuth';
 
 export function useCurrentUser() {
 	const { user, isAuthenticated, fetchCurrentUser } = useAuth();
-
-	// S'assurer que les données sont toujours disponibles
 	const instance = getCurrentInstance();
-
 	if (instance && process.client) {
-		// Charger les données au montage du composant
-		onMounted(() => {
-			fetchCurrentUser();
+		onMounted(async () => {
+			await fetchCurrentUser();
 		});
 	}
-
 	const currentUser = computed(() => user.value);
+	const userRole = computed(() => user.value?.role || '');
+	const isAdmin = computed(() => userRole.value === 'admin');
+	const isProfessor = computed(() => userRole.value === 'professor');
+	const isStudent = computed(() => userRole.value === 'student');
 
 	return {
 		currentUser,
 		isAuthenticated,
 		fetchCurrentUser,
+		userRole,
+		isAdmin,
+		isProfessor,
+		isStudent,
 	};
 }

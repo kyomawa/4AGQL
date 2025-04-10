@@ -1,57 +1,37 @@
 <template>
-	<div>
-		<h1 class="mb-6 text-3xl font-bold">Manage Users</h1>
+	<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 dark:to-violet-900">
+		<div class="w-[830px] mx-auto">
+			<Head>
+				<title>Gestion des utilisateurs - SchoolInc</title>
+			</Head>
+			<h2 class="text-center title-primary">Gestion des utilisateurs</h2>
 
-		<div
-			v-if="loading"
-			class="py-8 text-center"
-		>
-			<div
-				class="w-12 h-12 mx-auto border-b-2 border-blue-500 rounded-full animate-spin"
-			></div>
-			<p class="mt-4 text-gray-600">Loading users...</p>
-		</div>
-
-		<div v-else>
-			<!-- Controls -->
-			<div class="p-4 mb-6 bg-white rounded-lg shadow">
+			<!-- Contrôles de recherche -->
+			<div class="card p-6 mx-auto w-full mb-6">
 				<div class="flex flex-wrap gap-3">
 					<div class="flex-1">
-						<label class="block mb-2 text-sm font-medium text-gray-700"
-							>Search Users</label
-						>
+						<label class="label-primary dark:text-violet-300">
+							Rechercher des utilisateurs
+						</label>
 						<input
 							type="text"
 							v-model="searchQuery"
-							placeholder="Search by email, pseudo or ID"
-							class="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+							placeholder="Rechercher par prénom ou nom"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+							@keyup.enter="refetchUsers"
 						/>
-					</div>
-					<div>
-						<label class="block mb-2 text-sm font-medium text-gray-700"
-							>Filter by Role</label
-						>
-						<select
-							v-model="roleFilter"
-							class="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-						>
-							<option value="">All Roles</option>
-							<option value="student">Student</option>
-							<option value="professor">Professor</option>
-							<option value="admin">Admin</option>
-						</select>
 					</div>
 				</div>
 			</div>
 
-			<!-- Users Table -->
+			<!-- Aucun utilisateur trouvé -->
 			<div
 				v-if="filteredUsers.length === 0"
-				class="py-8 text-center bg-white rounded-lg shadow"
+				class="card p-6 mx-auto w-full text-center"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="w-16 h-16 mx-auto text-gray-400"
+					class="w-16 h-16 mx-auto text-violet-400"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -63,79 +43,77 @@
 						d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
 					/>
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-gray-900">No users found</h3>
-				<p class="mt-1 text-gray-500">Try changing your search or filter criteria.</p>
+				<h3 class="mt-4 text-lg font-medium text-violet-300">Aucun utilisateur trouvé</h3>
+				<p class="mt-1 text-violet-300">Essayez de modifier vos critères de recherche.</p>
 			</div>
 
+			<!-- Tableau des utilisateurs -->
 			<div
 				v-else
-				class="overflow-hidden bg-white rounded-lg shadow"
+				class="card mx-auto w-full overflow-hidden"
 			>
-				<table class="min-w-full divide-y divide-gray-200">
-					<thead class="bg-gray-50">
+				<table class="min-w-full divide-y divide-violet-800">
+					<thead class="bg-violet-900">
 						<tr>
 							<th
-								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-violet-300 uppercase"
 							>
-								ID
+								Prénom
 							</th>
 							<th
-								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-violet-300 uppercase"
+							>
+								Nom
+							</th>
+							<th
+								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-violet-300 uppercase"
 							>
 								Email
 							</th>
 							<th
-								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-violet-300 uppercase"
 							>
 								Pseudo
 							</th>
 							<th
-								class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-							>
-								Role
-							</th>
-							<th
-								class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
+								class="px-6 py-3 text-xs font-medium tracking-wider text-right text-violet-300 uppercase"
 							>
 								Actions
 							</th>
 						</tr>
 					</thead>
-					<tbody class="bg-white divide-y divide-gray-200">
+					<tbody class="divide-y divide-violet-800">
 						<tr
-							v-for="user in filteredUsers"
-							:key="user.id"
-							class="hover:bg-gray-50"
+							v-for="u in filteredUsers"
+							:key="u.id"
+							class="hover:bg-violet-900"
 						>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm font-medium text-gray-900">{{ user.id }}</div>
+								<div class="text-sm font-medium text-violet-200">
+									{{ u.firstName }}
+								</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-gray-900">{{ user.email }}</div>
+								<div class="text-sm text-violet-200">{{ u.lastName }}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-gray-900">{{ user.pseudo }}</div>
+								<div class="text-sm text-violet-200">{{ u.email }}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<span
-									class="inline-flex px-2 text-xs font-semibold leading-5 rounded-full"
-									:class="roleColorClass(user.role)"
-								>
-									{{ user.role }}
-								</span>
+								<div class="text-sm text-violet-200">{{ u.pseudo }}</div>
 							</td>
 							<td class="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
 								<button
-									@click="editUser(user)"
-									class="mr-3 text-indigo-600 hover:text-indigo-900"
+									@click="editUser(u)"
+									class="mr-3 link-primary"
 								>
-									Edit
+									Modifier
 								</button>
 								<button
-									@click="confirmDeleteUser(user)"
-									class="text-red-600 hover:text-red-900"
+									@click="confirmDeleteUser(u)"
+									class="text-red-400 hover:text-red-300"
 								>
-									Delete
+									Supprimer
 								</button>
 							</td>
 						</tr>
@@ -144,199 +122,246 @@
 			</div>
 		</div>
 
-		<!-- Edit User Modal -->
+		<!-- Modal d'édition de l'utilisateur -->
 		<div
 			v-if="showEditModal"
 			class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		>
-			<div class="w-full max-w-md p-6 bg-white rounded-lg">
-				<h2 class="mb-4 text-xl font-bold">Edit User</h2>
-
+			<div class="w-full max-w-md p-6 card dark:bg-violet-950">
+				<h3 class="mb-4 text-xl font-bold text-violet-300">Modifier l'utilisateur</h3>
 				<form
 					@submit.prevent="updateUser"
 					class="space-y-4"
 				>
 					<div>
-						<label class="block mb-1 text-sm font-medium text-gray-700">Email</label>
+						<label class="label-primary dark:text-violet-300">Prénom</label>
+						<input
+							v-model="userForm.firstName"
+							type="text"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+							required
+						/>
+					</div>
+					<div>
+						<label class="label-primary dark:text-violet-300">Nom</label>
+						<input
+							v-model="userForm.lastName"
+							type="text"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+							required
+						/>
+					</div>
+					<div>
+						<label class="label-primary dark:text-violet-300">Email</label>
 						<input
 							v-model="userForm.email"
 							type="email"
-							class="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-							readonly
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+							required
 						/>
-						<p class="mt-1 text-xs text-gray-500">Email cannot be changed</p>
 					</div>
-
 					<div>
-						<label class="block mb-1 text-sm font-medium text-gray-700">Pseudo</label>
+						<label class="label-primary dark:text-violet-300">Pseudo</label>
 						<input
 							v-model="userForm.pseudo"
 							type="text"
-							class="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
 							required
 						/>
 					</div>
-
 					<div>
-						<label class="block mb-1 text-sm font-medium text-gray-700">Role</label>
+						<label class="label-primary dark:text-violet-300">Rôle</label>
 						<select
 							v-model="userForm.role"
-							class="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
 							required
 						>
-							<option value="student">Student</option>
-							<option value="professor">Professor</option>
-							<option value="admin">Admin</option>
+							<option value="USER">Étudiant</option>
+							<option value="PROFESSOR">Professeur</option>
+							<option value="ADMIN">Administrateur</option>
 						</select>
 					</div>
-
 					<div class="flex justify-end pt-4 space-x-3">
 						<button
 							type="button"
 							@click="showEditModal = false"
-							class="px-4 py-2 transition border rounded-md hover:bg-gray-100"
+							class="btn-primary bg-violet-800 hover:bg-violet-700"
 						>
-							Cancel
+							Annuler
 						</button>
 						<button
 							type="submit"
-							class="px-4 py-2 text-white transition bg-blue-600 rounded-md hover:bg-blue-700"
+							class="btn-primary"
+							:disabled="updating"
 						>
-							Update
+							{{ updating ? 'Mise à jour...' : 'Mettre à jour' }}
 						</button>
 					</div>
 				</form>
 			</div>
 		</div>
 
-		<!-- Delete User Confirmation Modal -->
+		<!-- Modal de confirmation de suppression -->
 		<div
 			v-if="showDeleteModal"
 			class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		>
-			<div class="w-full max-w-md p-6 bg-white rounded-lg">
-				<h2 class="mb-4 text-xl font-bold">Delete User</h2>
-				<p class="mb-6 text-gray-700">
-					Are you sure you want to delete this user? This action cannot be undone and will
-					remove all associated data.
+			<div class="w-full max-w-md p-6 card dark:bg-violet-950">
+				<h3 class="mb-4 text-xl font-bold text-violet-300">Supprimer l'utilisateur</h3>
+				<p class="mb-6 text-violet-200">
+					Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est
+					irréversible et supprimera toutes les données associées.
 				</p>
 				<div class="flex justify-end space-x-3">
 					<button
 						@click="showDeleteModal = false"
-						class="px-4 py-2 transition border rounded-md hover:bg-gray-100"
+						class="btn-primary bg-violet-800 hover:bg-violet-700"
 					>
-						Cancel
+						Annuler
 					</button>
 					<button
 						@click="deleteUser"
-						class="px-4 py-2 text-white transition bg-red-600 rounded-md hover:bg-red-700"
+						class="btn-primary bg-red-600 hover:bg-red-700"
+						:disabled="deleting"
 					>
-						Delete
+						{{ deleting ? 'Suppression...' : 'Supprimer' }}
 					</button>
 				</div>
 			</div>
+		</div>
+
+		<!-- Notification (succès ou erreur) -->
+		<div
+			v-if="notification"
+			:class="[
+				'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg max-w-xs',
+				notification.type === 'success'
+					? 'bg-green-600 text-white'
+					: 'bg-red-600 text-white',
+			]"
+		>
+			{{ notification.message }}
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useQuery, useMutation } from '@vue/apollo-composable';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useQuery, useMutation, provideApolloClient } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
-import { useCurrentUser } from '~/composables/useCurrentUser';
+import { useNuxtApp } from '#app';
+import { useAuth } from '~/composables/useAuth';
 
 definePageMeta({
 	middleware: ['auth'],
 });
 
-const { currentUser } = useCurrentUser();
+const nuxtApp = useNuxtApp();
+provideApolloClient(nuxtApp.$apolloUsers as any);
+
+const { user: currentUser } = useAuth();
+const currentUserId = computed(() => currentUser.value?.id || '');
+
 const loading = ref(true);
+const updating = ref(false);
+const deleting = ref(false);
 const users = ref<any[]>([]);
 const searchQuery = ref('');
-const roleFilter = ref('');
-
-// Modal states
-const showEditModal = ref(false);
-const showDeleteModal = ref(false);
-
-// Form data
-const userForm = reactive({
-	id: '',
-	email: '',
-	pseudo: '',
-	role: '',
-});
-
-// Currently selected user for edit/delete
-const selectedUser = ref<any>(null);
-
-// Filter users based on search query and role filter
+// On filtre uniquement par prénom et nom
 const filteredUsers = computed(() => {
 	let result = users.value;
-
-	if (roleFilter.value) {
-		result = result.filter((user) => user.role === roleFilter.value);
-	}
-
 	if (searchQuery.value) {
 		const query = searchQuery.value.toLowerCase();
 		result = result.filter(
-			(user) =>
-				user.id.toLowerCase().includes(query) ||
-				user.email.toLowerCase().includes(query) ||
-				user.pseudo.toLowerCase().includes(query),
+			(u) =>
+				u.firstName.toLowerCase().includes(query) ||
+				u.lastName.toLowerCase().includes(query),
 		);
 	}
-
 	return result;
 });
 
-// GraphQL Queries and Mutations
+const notification = ref<{ type: 'success' | 'error'; message: string } | null>(null);
+const showEditModal = ref(false);
+const showDeleteModal = ref(false);
+
+const userForm = reactive({
+	id: '',
+	firstName: '',
+	lastName: '',
+	email: '',
+	pseudo: '',
+	// Le rôle doit être fourni selon votre schéma (AUTHROLE) – ADMIN, PROFESSOR, USER
+	role: '',
+	classIds: [] as string[],
+});
+
+const selectedUser = ref<any>(null);
+
 const GET_USERS_QUERY = gql`
 	query GetUsers {
-		get_users {
+		getUsers {
 			id
+			firstName
+			lastName
 			email
 			pseudo
-			role
+			classIds
 		}
 	}
 `;
 
+// Remarque : le serveur attend que l'objet utilisateur soit de type UpdateUserRequest
 const UPDATE_USER_MUTATION = gql`
-	mutation UpdateUser($id: String!, $input: UserInput!) {
-		update_user_by_id(id: $id, input: $input) {
+	mutation UpdateUserById($id: String!, $user: UpdateUserRequest!) {
+		updateUserById(id: $id, user: $user) {
 			id
+			firstName
+			lastName
 			email
 			pseudo
-			role
+			classIds
 		}
 	}
 `;
 
 const DELETE_USER_MUTATION = gql`
-	mutation DeleteUser($id: String!) {
-		delete_user_by_id(id: $id) {
+	mutation DeleteUserById($id: String!) {
+		deleteUserById(id: $id) {
 			id
+			firstName
+			lastName
+			email
+			pseudo
+			classIds
 		}
 	}
 `;
 
-// Execute Query
+const UPDATE_ROLE_MUTATION = gql`
+	mutation UpdateRole($userId: String!, $role: String!) {
+		updateRole(userId: $userId, role: { role: $role }) {
+			id
+			role
+		}
+	}
+`;
+
 const { result, loading: queryLoading, refetch } = useQuery(GET_USERS_QUERY);
 
-// Setup Mutations
 const { mutate: updateUserMutation } = useMutation(UPDATE_USER_MUTATION);
 const { mutate: deleteUserMutation } = useMutation(DELETE_USER_MUTATION);
+// La mutation updateRole est exécutée via le client Apollo Auth
+const { mutate: updateRoleMutation } = useMutation(UPDATE_ROLE_MUTATION, {
+	clientId: 'apolloAuth',
+});
 
-// Watch for query result and update users
 watch(result, (newResult) => {
-	if (newResult?.get_users) {
-		users.value = newResult.get_users;
+	if (newResult?.getUsers) {
+		users.value = newResult.getUsers;
 	}
 });
 
-// Watch for loading state and update local loading state
 watch(queryLoading, (isLoading) => {
 	loading.value = isLoading;
 });
@@ -345,79 +370,107 @@ onMounted(async () => {
 	await refetch();
 });
 
-// Methods
-const editUser = (user: any) => {
-	selectedUser.value = user;
-
-	// Copy user data to form
-	userForm.id = user.id;
-	userForm.email = user.email;
-	userForm.pseudo = user.pseudo;
-	userForm.role = user.role;
-
+const editUser = (u: any) => {
+	selectedUser.value = u;
+	// Copier les données pour le formulaire d'édition
+	userForm.id = u.id;
+	userForm.firstName = u.firstName;
+	userForm.lastName = u.lastName;
+	userForm.email = u.email;
+	userForm.pseudo = u.pseudo;
+	// Le backend ne retourne pas le rôle ; laissez vide ou définissez une valeur par défaut
+	userForm.role = '';
+	userForm.classIds = u.classIds || [];
 	showEditModal.value = true;
 };
 
-const confirmDeleteUser = (user: any) => {
-	selectedUser.value = user;
+const confirmDeleteUser = (u: any) => {
+	selectedUser.value = u;
 	showDeleteModal.value = true;
 };
 
 const updateUser = async () => {
 	if (!selectedUser.value) return;
-
+	updating.value = true;
 	try {
+		// On envoie toutes les informations (incluant role)
 		await updateUserMutation({
 			id: userForm.id,
-			input: {
+			user: {
+				firstName: userForm.firstName,
+				lastName: userForm.lastName,
+				email: userForm.email,
 				pseudo: userForm.pseudo,
-				role: userForm.role,
+				// Pour le champ role, si aucune valeur n’est saisie, nous utilisons une valeur par défaut ("USER")
+				role: userForm.role && userForm.role.trim() !== '' ? userForm.role : 'USER',
+				classIds: userForm.classIds,
 			},
 		});
-
 		showEditModal.value = false;
 		await refetch();
+		showNotification('Utilisateur mis à jour avec succès', 'success');
 	} catch (error) {
 		console.error('Error updating user:', error);
-		alert('Failed to update user.');
+		showNotification("Échec de la mise à jour de l'utilisateur", 'error');
+	} finally {
+		updating.value = false;
 	}
 };
 
 const deleteUser = async () => {
 	if (!selectedUser.value) return;
-
-	// Prevent deleting yourself
-	if (selectedUser.value.id === currentUser.value?.user_id) {
-		alert('You cannot delete your own account from this page. Use the profile page instead.');
+	if (selectedUser.value.id === currentUserId.value) {
+		showNotification(
+			'Vous ne pouvez pas supprimer votre propre compte depuis cette page. Utilisez la page de profil à la place.',
+			'error',
+		);
 		showDeleteModal.value = false;
 		return;
 	}
-
+	deleting.value = true;
 	try {
-		await deleteUserMutation({
-			id: selectedUser.value.id,
-		});
-
+		await deleteUserMutation({ id: selectedUser.value.id });
 		showDeleteModal.value = false;
 		selectedUser.value = null;
 		await refetch();
+		showNotification('Utilisateur supprimé avec succès', 'success');
 	} catch (error) {
 		console.error('Error deleting user:', error);
-		alert('Failed to delete user.');
+		showNotification("Échec de la suppression de l'utilisateur", 'error');
+	} finally {
+		deleting.value = false;
 	}
 };
 
-// Helper functions
-const roleColorClass = (role: string) => {
-	switch (role) {
-		case 'admin':
-			return 'bg-purple-100 text-purple-800';
-		case 'professor':
-			return 'bg-green-100 text-green-800';
-		case 'student':
-			return 'bg-blue-100 text-blue-800';
-		default:
-			return 'bg-gray-100 text-gray-800';
-	}
+const refetchUsers = async () => {
+	await refetch();
+};
+
+const showNotification = (message: string, type: 'success' | 'error') => {
+	notification.value = { message, type };
+	setTimeout(() => {
+		notification.value = null;
+	}, 3000);
 };
 </script>
+
+<style scoped>
+.card {
+	@apply bg-white shadow-lg rounded-2xl transition duration-300 dark:bg-violet-950;
+}
+.title-primary {
+	@apply mb-6 text-2xl font-bold text-violet-700 dark:text-violet-300;
+}
+.label-primary {
+	@apply block mb-1 text-sm font-medium dark:text-violet-300;
+}
+.input-primary {
+	@apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent;
+}
+.btn-primary {
+	@apply py-2 px-4 font-medium text-white transition-colors bg-violet-600 rounded-lg hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.link-primary {
+	@apply text-violet-400 hover:text-violet-300;
+}
+</style>

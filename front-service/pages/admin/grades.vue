@@ -17,14 +17,14 @@
 						<label class="label-primary dark:text-violet-300">Classe</label>
 						<select
 							v-model="classFilter"
-							@change="fetchGradesByClass"
+							@change="fetchGrades"
 							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
 						>
 							<option value="">Toutes les classes</option>
 							<option
 								v-for="classObj in myClasses"
 								:key="classObj.id"
-								:value="classObj.id"
+								:value="classObj.id.trim()"
 							>
 								{{ classObj.name }}
 							</option>
@@ -61,7 +61,7 @@
 							:key="student.id"
 							:value="student.id"
 						>
-							{{ `${student.firstName} ${student.lastName}` }}
+							{{ student.firstName }} {{ student.lastName }}
 						</option>
 					</select>
 				</div>
@@ -94,7 +94,7 @@
 				<h3 class="mt-4 text-lg font-medium text-violet-300">Aucune note trouvée</h3>
 				<p class="mt-1 text-violet-300">
 					{{
-						classFilter || courseFilter
+						classFilter || courseFilter || studentFilter
 							? 'Essayez de modifier vos critères de recherche.'
 							: 'Veuillez sélectionner une classe dans le filtre pour attribuer une note.'
 					}}
@@ -226,7 +226,7 @@
 								:key="student.id"
 								:value="student.id"
 							>
-								{{ `${student.firstName} ${student.lastName}` }}
+								{{ student.firstName }} {{ student.lastName }}
 							</option>
 						</select>
 						<p
@@ -345,7 +345,8 @@ import { useAuth } from '~/composables/useAuth';
 
 // Fournir les clients appropriés
 const nuxtApp = useNuxtApp();
-provideApolloClient(nuxtApp.$apolloClasses as any); // Pour les classes
+// Pour les classes (récupération des classes disponibles pour l'admin)
+provideApolloClient(nuxtApp.$apolloClasses as any);
 const apolloGrades = nuxtApp.$apolloGrades as any;
 const apolloUsers = nuxtApp.$apolloUsers as any;
 
@@ -389,19 +390,20 @@ const notification = ref<{ type: 'success' | 'error'; message: string } | null>(
 
 // --- Requêtes et mutations GraphQL ---
 
-// Query pour récupérer les classes du professeur
-const GET_MY_CLASSES_QUERY = gql`
-	query GetClassById($userId: String!) {
-		getClassesByUserId(userId: $userId) {
+// Requête pour récupérer toutes les classes (admin)
+const GET_CLASSES_QUERY = gql`
+	query GetClasses {
+		getClasses {
 			id
 			name
 			creatorId
+			creatorNames
 			userIds
 		}
 	}
 `;
 
-// Query pour récupérer tous les utilisateurs
+// Requête pour récupérer tous les utilisateurs
 const GET_USERS_QUERY = gql`
 	query GetUsers {
 		getUsers {
@@ -415,10 +417,10 @@ const GET_USERS_QUERY = gql`
 	}
 `;
 
-// Query pour récupérer les notes d'une classe
-const GET_GRADES_BY_CLASS_QUERY = gql`
-	query GetGradesByClassId($classId: String!) {
-		getGradesByClassId(classId: $classId) {
+// Requête pour récupérer toutes les notes
+const GET_GRADES_QUERY = gql`
+	query GetGrades {
+		getGrades {
 			id
 			course
 			note
@@ -438,7 +440,7 @@ const CREATE_GRADE_MUTATION = gql`
 	mutation CreateGrade(
 		$course: String!
 		$note: String
-		$grade: Float!
+		$grade: Int!
 		$userId: String!
 		$professorId: String!
 		$classId: String!
@@ -464,9 +466,9 @@ const CREATE_GRADE_MUTATION = gql`
 	}
 `;
 
-// Mutation pour mettre à jour une note sans utiliser GradeInput
+// Mutation pour mettre à jour une note
 const UPDATE_GRADE_MUTATION = gql`
-	mutation UpdateGradeById($id: String!, $course: String!, $note: String!, $grade: Float!) {
+	mutation UpdateGradeById($id: String!, $course: String!, $note: String!, $grade: Int!) {
 		updateGradeById(id: $id, grade: { course: $course, note: $note, grade: $grade }) {
 			id
 			course
@@ -494,19 +496,15 @@ const DELETE_GRADE_MUTATION = gql`
 	}
 `;
 
-// Récupérer les classes du professeur
+// Récupérer les classes disponibles (admin)
 const {
 	result: classesResult,
 	loading: classesLoading,
 	refetch: refetchClasses,
-} = useQuery(
-	GET_MY_CLASSES_QUERY,
-	() => ({ userId: currentUserId.value }),
-	() => ({ enabled: !!currentUserId.value }),
-);
+} = useQuery(GET_CLASSES_QUERY);
 watch(classesResult, (newResult) => {
-	if (newResult?.getClassesByUserId) {
-		myClasses.value = newResult.getClassesByUserId;
+	if (newResult?.getClasses) {
+		myClasses.value = newResult.getClasses;
 	}
 });
 
@@ -523,48 +521,21 @@ watch(usersResult, (newResult) => {
 	}
 });
 
-// Fonction pour récupérer les notes d'une classe
-async function fetchGradesByClass() {
-	if (!classFilter.value) {
-		grades.value = [];
-		courseFilter.value = '';
-		studentFilter.value = '';
-		return;
+// Récupérer toutes les notes
+const {
+	result,
+	loading: gradesLoading,
+	refetch,
+} = useQuery(GET_GRADES_QUERY, null, {
+	fetchPolicy: 'network-only',
+});
+watch(result, (newResult) => {
+	if (newResult?.getGrades) {
+		grades.value = newResult.getGrades;
 	}
-	loading.value = true;
-	try {
-		provideApolloClient(apolloGrades);
-		const result = await apolloGrades.query({
-			query: GET_GRADES_BY_CLASS_QUERY,
-			variables: { classId: classFilter.value },
-			fetchPolicy: 'network-only',
-		});
-		if (result.data?.getGradesByClassId) {
-			grades.value = result.data.getGradesByClassId;
-			// Mettre à jour les utilisateurs
-			provideApolloClient(apolloUsers);
-			await refetchUsers();
-		} else {
-			grades.value = [];
-		}
-	} catch (error) {
-		console.error('Erreur lors du chargement des notes:', error);
-		showNotification('Erreur lors du chargement des notes', 'error');
-		grades.value = [];
-	} finally {
-		loading.value = false;
-	}
-}
-
-// Mutations pour les notes
-provideApolloClient(apolloGrades);
-const { mutate: updateGrade } = useMutation(UPDATE_GRADE_MUTATION);
-const { mutate: deleteGradeMutation } = useMutation(DELETE_GRADE_MUTATION);
-const { mutate: createGrade } = useMutation(CREATE_GRADE_MUTATION);
-
-// Regrouper l'état de chargement
-watch([classesLoading, usersLoading], ([classLoading, userLoading]) => {
-	loading.value = classLoading || userLoading;
+});
+watch(gradesLoading, (isLoading) => {
+	loading.value = isLoading;
 });
 
 // Cours uniques pour le filtre
@@ -591,9 +562,13 @@ const availableStudents = computed(() => {
 // Grades filtrés par cours et par étudiant
 const filteredGrades = computed(() => {
 	let filtered = grades.value;
+	if (classFilter.value) {
+		filtered = filtered.filter((grade) => grade.classId === classFilter.value);
+	}
 	if (courseFilter.value) {
+		const filter = courseFilter.value.toLowerCase();
 		filtered = filtered.filter(
-			(grade) => grade.course.toLowerCase() === courseFilter.value.toLowerCase(),
+			(grade) => grade.course && grade.course.toLowerCase().includes(filter),
 		);
 	}
 	if (studentFilter.value) {
@@ -604,34 +579,9 @@ const filteredGrades = computed(() => {
 
 // Initialisation
 onMounted(async () => {
-	const urlClassId = route.query.classId as string;
-	if (urlClassId) {
-		classFilter.value = urlClassId;
-	}
-	provideApolloClient(apolloUsers);
+	await refetch();
 	await refetchUsers();
-	if (currentUserId.value) {
-		provideApolloClient(nuxtApp.$apolloClasses);
-		await refetchClasses();
-		if (classFilter.value) {
-			await fetchGradesByClass();
-		} else {
-			loading.value = false;
-		}
-	} else {
-		const unwatch = watch(currentUserId, async (newUserId) => {
-			if (newUserId) {
-				provideApolloClient(nuxtApp.$apolloClasses);
-				await refetchClasses();
-				if (classFilter.value) {
-					await fetchGradesByClass();
-				} else {
-					loading.value = false;
-				}
-				unwatch();
-			}
-		});
-	}
+	await refetchClasses();
 });
 
 // Méthodes de gestion des modals et des notes
@@ -639,7 +589,6 @@ function clearAllFilters() {
 	classFilter.value = '';
 	courseFilter.value = '';
 	studentFilter.value = '';
-	grades.value = [];
 }
 
 async function openAddGradeModal() {
@@ -652,7 +601,7 @@ async function openAddGradeModal() {
 		id: '',
 		userId: '',
 		professorId: currentUserId.value,
-		classId: classFilter.value,
+		classId: classFilter.value, // Utilise l'ID associé à la classe sélectionnée
 		course: '',
 		note: '',
 		grade: 0,
@@ -693,30 +642,25 @@ async function saveGrade() {
 	try {
 		provideApolloClient(apolloGrades);
 		if (editingGrade.value) {
-			// Mise à jour d'une note existante
 			await updateGrade({
 				id: gradeForm.value.id,
 				course: gradeForm.value.course,
 				note: gradeForm.value.note,
-				grade: parseFloat(gradeForm.value.grade.toString()),
+				grade: parseInt(gradeForm.value.grade.toString()),
 			});
 			showNotification('Note mise à jour avec succès', 'success');
 		} else {
-			// Création d'une nouvelle note
 			await createGrade({
 				course: gradeForm.value.course,
 				note: gradeForm.value.note,
-				grade: parseFloat(gradeForm.value.grade.toString()),
+				grade: parseInt(gradeForm.value.grade.toString()),
 				userId: gradeForm.value.userId,
 				professorId: currentUserId.value,
-				classId: classFilter.value,
+				classId: gradeForm.value.classId, // Cette valeur est l'ID réel de la classe
 			});
 			showNotification('Note ajoutée avec succès', 'success');
 		}
-		await fetchGradesByClass();
-		courseFilter.value = '';
-		studentFilter.value = '';
-		provideApolloClient(apolloUsers);
+		await refetch();
 		await refetchUsers();
 		closeGradeModal();
 	} catch (error) {
@@ -730,7 +674,7 @@ async function deleteGrade() {
 	try {
 		provideApolloClient(apolloGrades);
 		await deleteGradeMutation({ id: gradeToDelete.value.id });
-		await fetchGradesByClass();
+		await refetch();
 		showNotification('Note supprimée avec succès', 'success');
 		closeDeleteModal();
 	} catch (error) {
@@ -754,8 +698,9 @@ function isStudentInClass(studentId: string): boolean {
 	return selectedClass.userIds && selectedClass.userIds.includes(studentId);
 }
 
-// Validation et sauvegarde de note
+// Validation et sauvegarde de la note
 async function validateAndSaveGrade() {
+	// Réinitialiser l'erreur d'étudiant non inscrit
 	studentNotInClassError.value = false;
 	if (editingGrade.value) {
 		await saveGrade();
@@ -769,7 +714,7 @@ async function validateAndSaveGrade() {
 		showNotification('Le commentaire doit contenir au moins 20 caractères.', 'error');
 		return;
 	}
-	const numericGrade = parseFloat(gradeForm.value.grade.toString());
+	const numericGrade = parseInt(gradeForm.value.grade.toString());
 	if (numericGrade < 10 || numericGrade > 100) {
 		showNotification('La note doit être comprise entre 10 et 100.', 'error');
 		return;
@@ -784,7 +729,7 @@ watch(
 		const urlClassId = newQuery.classId as string;
 		if (urlClassId && urlClassId !== classFilter.value) {
 			classFilter.value = urlClassId;
-			fetchGradesByClass();
+			fetchGrades();
 		}
 	},
 );

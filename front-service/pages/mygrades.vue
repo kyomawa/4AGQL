@@ -2,19 +2,19 @@
 	<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 dark:to-violet-900">
 		<div class="w-[830px] mx-auto">
 			<Head>
-				<title>Classes - SchoolInc</title>
+				<title>Mes notes - SchoolInc</title>
 			</Head>
-			<h2 class="text-center title-primary">Classes</h2>
+			<h2 class="text-center title-primary">Mes notes</h2>
 
-			<!-- Barre de recherche stylisée -->
+			<!-- Barre de recherche stylisée pour filtrer par nom de classe -->
 			<div class="mb-6 mx-auto w-full">
-				<label class="label-primary dark:text-violet-300">Rechercher des classes</label>
+				<label class="label-primary dark:text-violet-300">Rechercher par classe</label>
 				<div class="flex w-full items-center">
 					<input
 						type="text"
-						v-model="nameFilter"
+						v-model="classFilter"
 						@keyup.enter="applyFilter"
-						placeholder="Entrez le nom de la classe"
+						placeholder="Nom de la classe"
 						class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800 flex-1"
 					/>
 					<button
@@ -41,33 +41,34 @@
 				<div
 					class="w-12 h-12 mx-auto border-b-2 rounded-full border-violet-500 animate-spin"
 				></div>
-				<p class="mt-4 text-violet-300">Chargement des classes...</p>
+				<p class="mt-4 text-violet-300">Chargement des notes...</p>
 			</div>
 
 			<!-- Aucun résultat -->
 			<div
-				v-else-if="classes.length === 0"
+				v-else-if="filteredGrades.length === 0"
 				class="p-6 card text-center"
 			>
-				<h3 class="mt-4 text-lg font-medium text-violet-300">Aucune classe trouvée</h3>
+				<h3 class="mt-4 text-lg font-medium text-violet-300">Aucune note trouvée</h3>
 				<p class="mt-1 text-violet-300">
 					{{
 						isFiltered
 							? 'Essayez de modifier vos critères de recherche.'
-							: "Aucune classe n'est disponible pour le moment."
+							: "Aucune note n'est disponible pour le moment."
 					}}
 				</p>
 			</div>
 
-			<!-- Grille des classes -->
+			<!-- Liste des notes (une note par ligne) -->
 			<div
 				v-else
-				class="grid grid-cols-3 gap-6"
+				class="space-y-4"
 			>
-				<ClassCard
-					v-for="classItem in classes"
-					:key="classItem.id"
-					:classItem="classItem"
+				<GradeCard
+					v-for="grade in filteredGrades"
+					:key="grade.id"
+					:grade="grade"
+					class="w-full"
 				/>
 			</div>
 		</div>
@@ -75,52 +76,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useNuxtApp } from '#app';
 import { provideApolloClient, useQuery } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
-import { useNuxtApp } from '#app';
-import ClassCard from '~/components/ClassCard.vue';
+import GradeCard from '~/components/GradeCard.vue';
+import { useAuth } from '~/composables/useAuth';
 
-// Fournir le client Apollo destiné au service Classes
+// Fournir le client Apollo destiné au service Grades
 const nuxtApp = useNuxtApp();
-provideApolloClient(nuxtApp.$apolloClasses as any);
+provideApolloClient(nuxtApp.$apolloGrades as any);
 
-const route = useRoute();
-const nameFilter = ref('');
+// Récupérer le user connecté via useAuth et définir currentUserId
+const { user } = useAuth();
+const currentUserId = computed(() => user.value?.id || '');
+
+// Barre de recherche pour filtrer par nom de classe
+const classFilter = ref('');
 const isFiltered = ref(false);
 const loading = ref(true);
-const classes = ref<any[]>([]);
+const grades = ref<any[]>([]);
 
-// Correction de la requête pour qu'elle corresponde à votre backend
-const GET_CLASSES_QUERY = gql`
-	query GetClasses($name: String) {
-		getClasses(name: $name) {
+// Définition de la query avec variable userId
+const GET_GRADES_QUERY = gql`
+	query GetGradesByUserId($userId: String!) {
+		getGradesByUserId(userId: $userId) {
 			id
-			name
-			creatorId
-			creatorNames
-			userIds
+			course
+			note
+			grade
+			userId
+			userNames
+			professorNames
+			professorId
+			classId
+			className
 		}
 	}
 `;
 
+// Utilisation de useQuery en passant currentUserId
 const {
 	result,
 	loading: queryLoading,
 	refetch,
 	onError,
-} = useQuery(GET_CLASSES_QUERY, () => ({ name: isFiltered.value ? nameFilter.value : null }), {
+} = useQuery(GET_GRADES_QUERY, () => ({ userId: currentUserId.value }), {
 	fetchPolicy: 'network-only',
 });
 
 onError((error) => {
-	console.error('Error fetching classes:', error);
+	console.error('Error fetching grades:', error);
 });
 
 watch(result, (newResult) => {
-	if (newResult && newResult.getClasses) {
-		classes.value = newResult.getClasses;
+	if (newResult && newResult.getGradesByUserId) {
+		grades.value = newResult.getGradesByUserId;
 	}
 });
 
@@ -128,42 +139,38 @@ watch(queryLoading, (isLoading) => {
 	loading.value = isLoading;
 });
 
-// Fonction pour déboguer le résultat
-const debugResult = () => {
-	console.log('Résultat de la requête:', result.value);
-};
-
 onMounted(async () => {
-	await refetch();
-	// Débogage après le chargement
-	setTimeout(debugResult, 1000);
+	if (currentUserId.value) {
+		await refetch();
+	}
 });
 
-watch(
-	() => route.path,
-	async (newPath) => {
-		if (newPath === '/classes') {
-			await refetch();
-		}
-	},
-);
+// Filtrer les notes par le nom de la classe (en minuscule)
+const filteredGrades = computed(() => {
+	if (!classFilter.value.trim()) {
+		return grades.value;
+	}
+	const filter = classFilter.value.toLowerCase();
+	return grades.value.filter(
+		(g: any) => g.className && g.className.toLowerCase().includes(filter),
+	);
+});
 
 const applyFilter = async () => {
-	if (nameFilter.value.trim()) {
+	if (classFilter.value.trim()) {
 		isFiltered.value = true;
 		await refetch();
 	}
 };
 
 const clearFilter = async () => {
-	nameFilter.value = '';
+	classFilter.value = '';
 	isFiltered.value = false;
 	await refetch();
 };
 </script>
 
 <style scoped>
-/* Styles repris du style de register.vue */
 .card {
 	@apply bg-white shadow-lg rounded-2xl transition duration-300 dark:bg-violet-950;
 }

@@ -2,23 +2,24 @@
 	<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 dark:to-violet-900">
 		<div class="w-[830px] mx-auto">
 			<Head>
-				<title>Classes - SchoolInc</title>
+				<title>Mes classes - SchoolInc</title>
 			</Head>
-			<h2 class="text-center title-primary">Classes</h2>
+			<h2 class="text-center title-primary">Mes classes</h2>
 
-			<!-- Barre de recherche stylisée -->
+			<!-- Barre de recherche stylisée (filtrage côté client) -->
 			<div class="mb-6 mx-auto w-full">
-				<label class="label-primary dark:text-violet-300">Rechercher des classes</label>
+				<label class="label-primary dark:text-violet-300"
+					>Rechercher dans mes classes</label
+				>
 				<div class="flex w-full items-center">
 					<input
 						type="text"
 						v-model="nameFilter"
-						@keyup.enter="applyFilter"
 						placeholder="Entrez le nom de la classe"
 						class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800 flex-1"
 					/>
 					<button
-						@click="applyFilter"
+						@click="filterClasses"
 						class="btn-primary ml-3 px-6"
 					>
 						Rechercher
@@ -41,12 +42,12 @@
 				<div
 					class="w-12 h-12 mx-auto border-b-2 rounded-full border-violet-500 animate-spin"
 				></div>
-				<p class="mt-4 text-violet-300">Chargement des classes...</p>
+				<p class="mt-4 text-violet-300">Chargement de vos classes...</p>
 			</div>
 
 			<!-- Aucun résultat -->
 			<div
-				v-else-if="classes.length === 0"
+				v-else-if="filteredClasses.length === 0"
 				class="p-6 card text-center"
 			>
 				<h3 class="mt-4 text-lg font-medium text-violet-300">Aucune classe trouvée</h3>
@@ -54,7 +55,7 @@
 					{{
 						isFiltered
 							? 'Essayez de modifier vos critères de recherche.'
-							: "Aucune classe n'est disponible pour le moment."
+							: "Vous n'êtes inscrit à aucune classe pour le moment."
 					}}
 				</p>
 			</div>
@@ -65,7 +66,7 @@
 				class="grid grid-cols-3 gap-6"
 			>
 				<ClassCard
-					v-for="classItem in classes"
+					v-for="classItem in filteredClasses"
 					:key="classItem.id"
 					:classItem="classItem"
 				/>
@@ -75,11 +76,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { provideApolloClient, useQuery } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import { useNuxtApp } from '#app';
+import { useAuth } from '~/composables/useAuth';
 import ClassCard from '~/components/ClassCard.vue';
 
 // Fournir le client Apollo destiné au service Classes
@@ -87,19 +89,26 @@ const nuxtApp = useNuxtApp();
 provideApolloClient(nuxtApp.$apolloClasses as any);
 
 const route = useRoute();
+
+// Récupérer l'identifiant de l'utilisateur connecté
+const { user } = useAuth();
+const currentUserId = computed(() => user.value?.id || '');
+
+// Variables pour la recherche (filtrage côté client)
 const nameFilter = ref('');
 const isFiltered = ref(false);
+
+// États de chargement et stockage des classes récupérées
 const loading = ref(true);
 const classes = ref<any[]>([]);
 
-// Correction de la requête pour qu'elle corresponde à votre backend
-const GET_CLASSES_QUERY = gql`
-	query GetClasses($name: String) {
-		getClasses(name: $name) {
+// Query pour récupérer les classes associées à l'élève connecté (sans filtre name)
+const GET_CLASSES_BY_USERID_QUERY = gql`
+	query GetClassesByUserId($userId: String!) {
+		getClassesByUserId(userId: $userId) {
 			id
 			name
 			creatorId
-			creatorNames
 			userIds
 		}
 	}
@@ -110,17 +119,23 @@ const {
 	loading: queryLoading,
 	refetch,
 	onError,
-} = useQuery(GET_CLASSES_QUERY, () => ({ name: isFiltered.value ? nameFilter.value : null }), {
-	fetchPolicy: 'network-only',
-});
+} = useQuery(
+	GET_CLASSES_BY_USERID_QUERY,
+	() => ({
+		userId: currentUserId.value,
+	}),
+	{ fetchPolicy: 'network-only' },
+);
 
 onError((error) => {
 	console.error('Error fetching classes:', error);
 });
 
 watch(result, (newResult) => {
-	if (newResult && newResult.getClasses) {
-		classes.value = newResult.getClasses;
+	if (newResult && newResult.getClassesByUserId) {
+		classes.value = newResult.getClassesByUserId;
+	} else {
+		console.log('Pas de classes retournées pour cet utilisateur:', currentUserId.value);
 	}
 });
 
@@ -128,42 +143,68 @@ watch(queryLoading, (isLoading) => {
 	loading.value = isLoading;
 });
 
+// Filtrage côté client au lieu de passer le filtre à la requête GraphQL
+const filteredClasses = computed(() => {
+	if (!nameFilter.value.trim() || !isFiltered.value) {
+		return classes.value;
+	}
+
+	const filter = nameFilter.value.toLowerCase();
+	return classes.value.filter((classItem) => classItem.name.toLowerCase().includes(filter));
+});
+
 // Fonction pour déboguer le résultat
 const debugResult = () => {
-	console.log('Résultat de la requête:', result.value);
+	console.log('User ID courant:', currentUserId.value);
+	console.log('Résultat de la requête GetClassesByUserId:', result.value);
+	console.log('Classes chargées:', classes.value);
+	console.log('Classes filtrées:', filteredClasses.value);
 };
 
 onMounted(async () => {
-	await refetch();
-	// Débogage après le chargement
-	setTimeout(debugResult, 1000);
+	if (currentUserId.value) {
+		await refetch();
+		// Débogage après le chargement
+		setTimeout(debugResult, 1000);
+	} else {
+		console.warn('Utilisateur non connecté ou ID non disponible');
+		loading.value = false;
+	}
 });
 
 watch(
 	() => route.path,
 	async (newPath) => {
-		if (newPath === '/classes') {
+		if (newPath === '/myclasses') {
 			await refetch();
 		}
 	},
 );
 
-const applyFilter = async () => {
+watch(
+	() => currentUserId.value,
+	async (newId, oldId) => {
+		if (newId && newId !== oldId) {
+			console.log('ID utilisateur changé, recharger les classes:', newId);
+			await refetch();
+		}
+	},
+);
+
+// Filtrage côté client
+const filterClasses = () => {
 	if (nameFilter.value.trim()) {
 		isFiltered.value = true;
-		await refetch();
 	}
 };
 
-const clearFilter = async () => {
+const clearFilter = () => {
 	nameFilter.value = '';
 	isFiltered.value = false;
-	await refetch();
 };
 </script>
 
 <style scoped>
-/* Styles repris du style de register.vue */
 .card {
 	@apply bg-white shadow-lg rounded-2xl transition duration-300 dark:bg-violet-950;
 }
