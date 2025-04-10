@@ -166,28 +166,19 @@ impl QueryRoot {
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<Grade>("grades");
 
+        let class_oid = ObjectId::parse_str(&class_id)?;
+
         let filter = match token.role {
             AuthRole::Admin => {
-                doc! {
-                    "$or": [
-                        { "class_id": ObjectId::parse_str(&class_id)? },
-                        { "professor_id": ObjectId::parse_str(&class_id)? }
-                    ]
-                }
+                doc! { "class_id": class_oid }
             }
             AuthRole::Professor => {
                 let professor_oid = ObjectId::parse_str(&token.user_id)?;
-                if professor_oid != ObjectId::parse_str(&class_id)? {
-                    return Err("Unauthorized: You can only view your own grades".into());
-                }
-                doc! { "professor_id": professor_oid }
+                doc! { "class_id": class_oid, "professor_id": professor_oid }
             }
             AuthRole::User => {
                 let user_oid = ObjectId::parse_str(&token.user_id)?;
-                if user_oid != ObjectId::parse_str(&class_id)? {
-                    return Err("Unauthorized: You can only view your own grades".into());
-                }
-                doc! { "user_id": user_oid }
+                doc! { "class_id": class_oid, "user_id": user_oid }
             }
         };
 
