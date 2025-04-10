@@ -1,7 +1,10 @@
 <template>
-
 	<Head>
-		<link rel="icon" type="image/png" href="/logo.png" />
+		<link
+			rel="icon"
+			type="image/png"
+			href="/logo.png"
+		/>
 	</Head>
 	<NuxtLayout>
 		<NuxtPage />
@@ -19,7 +22,6 @@ onMounted(async () => {
 	try {
 		// Cette ligne est CRUCIALE - elle charge l'utilisateur au démarrage de l'application
 		await fetchCurrentUser(true);
-		console.log('App.vue - Auth initialized');
 	} catch (error) {
 		console.error('App.vue - Auth initialization error:', error);
 	}

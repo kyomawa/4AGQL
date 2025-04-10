@@ -196,7 +196,7 @@
 									}"
 									to="/admin/grades"
 								>
-									Grades
+									Notes
 								</NuxtLink>
 							</div>
 						</div>
@@ -342,7 +342,7 @@
 										to="/admin/grades"
 										@click="isOpen = false"
 									>
-										Grades
+										Notes
 									</NuxtLink>
 								</div>
 							</div>
@@ -394,11 +394,9 @@ const userRole = computed(() => {
 
 // Initialiser l'état au montage
 onMounted(async () => {
-	console.log('Navbar mounted, ensuring auth state');
 	try {
 		// Rafraîchir l'authentification au montage du composant
 		await fetchCurrentUser();
-		console.log('Auth state refreshed, role:', userRole.value);
 	} catch (error) {
 		console.error('Error checking auth in navbar:', error);
 	}
@@ -421,7 +419,6 @@ const isAdminRoute = computed(() => {
 
 // Logout handler
 const handleLogout = async () => {
-	console.log('Logout requested');
 	try {
 		await logout();
 		isOpen.value = false;

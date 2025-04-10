@@ -134,8 +134,6 @@ onError((error) => {
 watch(result, (newResult) => {
 	if (newResult && newResult.getClassesByUserId) {
 		classes.value = newResult.getClassesByUserId;
-	} else {
-		console.log('Pas de classes retournées pour cet utilisateur:', currentUserId.value);
 	}
 });
 

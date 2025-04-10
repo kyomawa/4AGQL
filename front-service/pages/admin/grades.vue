@@ -2,9 +2,9 @@
 	<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 dark:to-violet-900">
 		<div class="w-[830px] mx-auto">
 			<Head>
-				<title>Gestion des notes - SchoolInc</title>
+				<title>Administration des notes - SchoolInc</title>
 			</Head>
-			<h2 class="text-center title-primary">Gestion des notes</h2>
+			<h2 class="text-center title-primary">Administration des notes</h2>
 
 			<!-- Filtres -->
 			<div class="mb-8 card p-6">
@@ -17,19 +17,38 @@
 						<label class="label-primary dark:text-violet-300">Classe</label>
 						<select
 							v-model="classFilter"
-							@change="fetchGrades"
 							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
 						>
 							<option value="">Toutes les classes</option>
 							<option
-								v-for="classObj in myClasses"
+								v-for="classObj in classes"
 								:key="classObj.id"
-								:value="classObj.id.trim()"
+								:value="classObj.id"
 							>
-								{{ classObj.name }}
+								{{ classObj.name }} ({{ classObj.creatorNames }})
 							</option>
 						</select>
 					</div>
+					<!-- Filtre par professeur -->
+					<div>
+						<label class="label-primary dark:text-violet-300">Professeur</label>
+						<select
+							v-model="professorFilter"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+						>
+							<option value="">Tous les professeurs</option>
+							<option
+								v-for="professor in uniqueProfessors"
+								:key="professor.id"
+								:value="professor.id"
+							>
+								{{ professor.name }}
+							</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 					<!-- Filtre par cours -->
 					<div>
 						<label class="label-primary dark:text-violet-300">Cours</label>
@@ -47,24 +66,26 @@
 							</option>
 						</select>
 					</div>
-				</div>
-				<!-- Filtre par étudiant -->
-				<div class="mb-4">
-					<label class="label-primary dark:text-violet-300">Étudiant</label>
-					<select
-						v-model="studentFilter"
-						class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800 w-full"
-					>
-						<option value="">Tous les étudiants</option>
-						<option
-							v-for="student in availableStudents"
-							:key="student.id"
-							:value="student.id"
+
+					<!-- Filtre par étudiant -->
+					<div>
+						<label class="label-primary dark:text-violet-300">Étudiant</label>
+						<select
+							v-model="studentFilter"
+							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
 						>
-							{{ student.firstName }} {{ student.lastName }}
-						</option>
-					</select>
+							<option value="">Tous les étudiants</option>
+							<option
+								v-for="student in uniqueStudents"
+								:key="student.id"
+								:value="student.id"
+							>
+								{{ student.name }}
+							</option>
+						</select>
+					</div>
 				</div>
+
 				<div class="flex justify-end">
 					<button
 						@click="clearAllFilters"
@@ -94,35 +115,15 @@
 				<h3 class="mt-4 text-lg font-medium text-violet-300">Aucune note trouvée</h3>
 				<p class="mt-1 text-violet-300">
 					{{
-						classFilter || courseFilter || studentFilter
+						isAnyFilterActive
 							? 'Essayez de modifier vos critères de recherche.'
-							: 'Veuillez sélectionner une classe dans le filtre pour attribuer une note.'
+							: "Aucune note n'a été attribuée pour le moment."
 					}}
 				</p>
-				<div
-					v-if="classFilter"
-					class="mt-4"
-				>
-					<button
-						@click="openAddGradeModal"
-						class="btn-primary"
-					>
-						Ajouter une note
-					</button>
-				</div>
 			</div>
 
 			<!-- Tableau des notes -->
 			<div v-else>
-				<div class="flex justify-end mb-4">
-					<button
-						v-if="classFilter"
-						@click="openAddGradeModal"
-						class="btn-primary"
-					>
-						Ajouter une note
-					</button>
-				</div>
 				<div class="overflow-x-auto">
 					<table
 						class="min-w-full bg-white dark:bg-violet-950 rounded-lg overflow-hidden shadow-md"
@@ -137,12 +138,17 @@
 								<th
 									class="py-3 px-4 text-left text-sm font-medium text-violet-800 dark:text-violet-200"
 								>
-									Cours
+									Professeur
 								</th>
 								<th
 									class="py-3 px-4 text-left text-sm font-medium text-violet-800 dark:text-violet-200"
 								>
-									Commentaire
+									Classe
+								</th>
+								<th
+									class="py-3 px-4 text-left text-sm font-medium text-violet-800 dark:text-violet-200"
+								>
+									Cours
 								</th>
 								<th
 									class="py-3 px-4 text-left text-sm font-medium text-violet-800 dark:text-violet-200"
@@ -163,13 +169,16 @@
 								class="hover:bg-violet-50 dark:hover:bg-violet-900"
 							>
 								<td class="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">
-									{{ grade.userNames || grade.userId }}
+									{{ grade.userNames }}
+								</td>
+								<td class="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">
+									{{ grade.professorNames }}
+								</td>
+								<td class="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">
+									{{ grade.className }}
 								</td>
 								<td class="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">
 									{{ grade.course }}
-								</td>
-								<td class="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">
-									{{ grade.note }}
 								</td>
 								<td
 									class="py-3 px-4 text-sm font-medium text-violet-600 dark:text-violet-400"
@@ -195,180 +204,154 @@
 					</table>
 				</div>
 			</div>
-		</div>
 
-		<!-- Modal Ajouter/Modifier une note -->
-		<div
-			v-if="showGradeModal"
-			class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center"
-		>
-			<div class="bg-white dark:bg-violet-950 rounded-lg shadow-xl p-6 w-full max-w-md">
-				<h3 class="text-xl font-semibold text-violet-700 dark:text-violet-300 mb-4">
-					{{ editingGrade ? 'Modifier la note' : 'Ajouter une note' }}
-				</h3>
-				<form @submit.prevent="validateAndSaveGrade">
-					<!-- Champ Étudiant -->
-					<div class="mb-4">
-						<label class="label-primary dark:text-violet-300">Étudiant</label>
-						<select
-							v-model="gradeForm.userId"
-							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
-							required
-						>
-							<option
-								value=""
-								disabled
+			<!-- Modal Modifier une note -->
+			<div
+				v-if="showGradeModal"
+				class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center"
+			>
+				<div class="bg-white dark:bg-violet-950 rounded-lg shadow-xl p-6 w-full max-w-md">
+					<h3 class="text-xl font-semibold text-violet-700 dark:text-violet-300 mb-4">
+						Modifier la note
+					</h3>
+
+					<form @submit.prevent="saveGrade">
+						<!-- Champs du formulaire -->
+						<div class="mb-4">
+							<label class="label-primary dark:text-violet-300">Cours</label>
+							<input
+								v-model="gradeForm.course"
+								type="text"
+								placeholder="Nom du cours"
+								class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+								required
+							/>
+						</div>
+
+						<div class="mb-4">
+							<label class="label-primary dark:text-violet-300">Commentaire</label>
+							<textarea
+								v-model="gradeForm.note"
+								placeholder="Commentaire sur la note (min 20 caractères)"
+								class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800 min-h-[100px]"
+								required
+							></textarea>
+						</div>
+
+						<div class="mb-6">
+							<label class="label-primary dark:text-violet-300">Note (sur 100)</label>
+							<input
+								v-model="gradeForm.grade"
+								type="number"
+								min="10"
+								max="100"
+								step="1"
+								placeholder="Note sur 100"
+								class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
+								required
+							/>
+						</div>
+
+						<div class="flex justify-end space-x-3">
+							<button
+								type="button"
+								@click="closeGradeModal"
+								class="btn-secondary border border-gray-300 dark:border-violet-700"
 							>
-								Sélectionnez un étudiant
-							</option>
-							<option
-								v-for="student in allUsers"
-								:key="student.id"
-								:value="student.id"
+								Annuler
+							</button>
+							<button
+								type="submit"
+								class="btn-primary"
 							>
-								{{ student.firstName }} {{ student.lastName }}
-							</option>
-						</select>
-						<p
-							v-if="studentNotInClassError"
-							class="text-red-500 text-sm mt-1"
-						>
-							Cet étudiant n'est pas inscrit dans cette classe. Veuillez l'ajouter
-							d'abord.
-						</p>
-					</div>
-					<!-- Champ Cours -->
-					<div class="mb-4">
-						<label class="label-primary dark:text-violet-300">Cours</label>
-						<input
-							v-model="gradeForm.course"
-							type="text"
-							placeholder="Nom du cours"
-							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
-							required
-						/>
-					</div>
-					<!-- Champ Commentaire -->
-					<div class="mb-4">
-						<label class="label-primary dark:text-violet-300">Commentaire</label>
-						<textarea
-							v-model="gradeForm.note"
-							placeholder="Commentaire sur la note (min 20 caractères)"
-							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800 min-h-[100px]"
-							required
-						></textarea>
-					</div>
-					<!-- Champ Note -->
-					<div class="mb-6">
-						<label class="label-primary dark:text-violet-300">Note (sur 100)</label>
-						<input
-							v-model="gradeForm.grade"
-							type="number"
-							min="10"
-							max="100"
-							step="1"
-							placeholder="Note sur 100"
-							class="input-primary dark:bg-violet-900 dark:text-white dark:border-violet-800"
-							required
-						/>
-					</div>
+								Enregistrer
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+
+			<!-- Modal de confirmation de suppression -->
+			<div
+				v-if="showDeleteModal"
+				class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center"
+			>
+				<div class="bg-white dark:bg-violet-950 rounded-lg shadow-xl p-6 w-full max-w-md">
+					<h3 class="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
+						Supprimer la note
+					</h3>
+
+					<p class="text-gray-700 dark:text-gray-300 mb-6">
+						Êtes-vous sûr de vouloir supprimer cette note ? Cette action est
+						irréversible.
+					</p>
+
 					<div class="flex justify-end space-x-3">
 						<button
-							type="button"
-							@click="closeGradeModal"
+							@click="closeDeleteModal"
 							class="btn-secondary border border-gray-300 dark:border-violet-700"
 						>
 							Annuler
 						</button>
 						<button
-							type="submit"
-							class="btn-primary"
+							@click="deleteGrade"
+							class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
 						>
-							{{ editingGrade ? 'Enregistrer' : 'Ajouter' }}
+							Supprimer
 						</button>
 					</div>
-				</form>
-			</div>
-		</div>
-
-		<!-- Modal de confirmation de suppression -->
-		<div
-			v-if="showDeleteModal"
-			class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center"
-		>
-			<div class="bg-white dark:bg-violet-950 rounded-lg shadow-xl p-6 w-full max-w-md">
-				<h3 class="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
-					Supprimer la note
-				</h3>
-				<p class="text-gray-700 dark:text-gray-300 mb-6">
-					Êtes-vous sûr de vouloir supprimer cette note ? Cette action est irréversible.
-				</p>
-				<div class="flex justify-end space-x-3">
-					<button
-						@click="closeDeleteModal"
-						class="btn-secondary border border-gray-300 dark:border-violet-700"
-					>
-						Annuler
-					</button>
-					<button
-						@click="deleteGrade"
-						class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-					>
-						Supprimer
-					</button>
 				</div>
 			</div>
-		</div>
 
-		<!-- Notification (succès ou erreur) -->
-		<div
-			v-if="notification"
-			:class="[
-				'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg max-w-xs',
-				notification.type === 'success'
-					? 'bg-green-600 text-white'
-					: 'bg-red-600 text-white',
-			]"
-		>
-			{{ notification.message }}
+			<!-- Notification (succès ou erreur) -->
+			<div
+				v-if="notification"
+				:class="[
+					'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg max-w-xs',
+					notification.type === 'success'
+						? 'bg-green-600 text-white'
+						: 'bg-red-600 text-white',
+				]"
+			>
+				{{ notification.message }}
+			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { provideApolloClient, useQuery, useMutation } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import { useNuxtApp } from '#app';
 import { useAuth } from '~/composables/useAuth';
 
-// Fournir les clients appropriés
+// Clients Apollo
 const nuxtApp = useNuxtApp();
-// Pour les classes (récupération des classes disponibles pour l'admin)
-provideApolloClient(nuxtApp.$apolloClasses as any);
-const apolloGrades = nuxtApp.$apolloGrades as any;
+provideApolloClient(nuxtApp.$apolloGrades as any);
+const apolloClasses = nuxtApp.$apolloClasses as any;
 const apolloUsers = nuxtApp.$apolloUsers as any;
 
-// Router et état d'authentification
-const route = useRoute();
-const router = useRouter();
+// État d'authentification
 const { user } = useAuth();
 const currentUserId = computed(() => user.value?.id || '');
 
 // États pour les filtres
 const classFilter = ref('');
+const professorFilter = ref('');
 const courseFilter = ref('');
 const studentFilter = ref('');
+
+// Vérifie si un filtre est actif
+const isAnyFilterActive = computed(
+	() => classFilter.value || professorFilter.value || courseFilter.value || studentFilter.value,
+);
 
 // États pour les données
 const loading = ref(true);
 const grades = ref<any[]>([]);
-const myClasses = ref<any[]>([]);
+const classes = ref<any[]>([]);
 const allUsers = ref<any[]>([]);
-
-// Pour gérer l'erreur d'étudiant non inscrit
-const studentNotInClassError = ref(false);
 
 // États pour les modals
 const showGradeModal = ref(false);
@@ -388,37 +371,8 @@ const gradeToDelete = ref<any>(null);
 // État pour les notifications
 const notification = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 
-// --- Requêtes et mutations GraphQL ---
-
-// Requête pour récupérer toutes les classes (admin)
-const GET_CLASSES_QUERY = gql`
-	query GetClasses {
-		getClasses {
-			id
-			name
-			creatorId
-			creatorNames
-			userIds
-		}
-	}
-`;
-
-// Requête pour récupérer tous les utilisateurs
-const GET_USERS_QUERY = gql`
-	query GetUsers {
-		getUsers {
-			id
-			firstName
-			lastName
-			pseudo
-			email
-			classIds
-		}
-	}
-`;
-
-// Requête pour récupérer toutes les notes
-const GET_GRADES_QUERY = gql`
+// Query pour récupérer toutes les notes
+const GET_ALL_GRADES_QUERY = gql`
 	query GetGrades {
 		getGrades {
 			id
@@ -435,40 +389,36 @@ const GET_GRADES_QUERY = gql`
 	}
 `;
 
-// Mutation pour créer une note
-const CREATE_GRADE_MUTATION = gql`
-	mutation CreateGrade(
-		$course: String!
-		$note: String
-		$grade: Int!
-		$userId: String!
-		$professorId: String!
-		$classId: String!
-	) {
-		createGrade(
-			grade: {
-				course: $course
-				note: $note
-				grade: $grade
-				userId: $userId
-				professorId: $professorId
-				classId: $classId
-			}
-		) {
+// Query pour récupérer toutes les classes
+const GET_CLASSES_QUERY = gql`
+	query GetClasses {
+		getClasses {
 			id
-			course
-			note
-			grade
-			userId
-			professorId
-			classId
+			name
+			creatorId
+			creatorNames
+			userIds
 		}
 	}
 `;
 
-// Mutation pour mettre à jour une note
+// Query pour récupérer tous les utilisateurs
+const GET_USERS_QUERY = gql`
+	query GetUsers {
+		getUsers {
+			id
+			firstName
+			lastName
+			pseudo
+			email
+			classIds
+		}
+	}
+`;
+
+// Mutations pour les opérations CRUD sur les notes
 const UPDATE_GRADE_MUTATION = gql`
-	mutation UpdateGradeById($id: String!, $course: String!, $note: String!, $grade: Int!) {
+	mutation UpdateGradeById($id: String!, $course: String!, $note: String!, $grade: Float!) {
 		updateGradeById(id: $id, grade: { course: $course, note: $note, grade: $grade }) {
 			id
 			course
@@ -481,7 +431,6 @@ const UPDATE_GRADE_MUTATION = gql`
 	}
 `;
 
-// Mutation pour supprimer une note
 const DELETE_GRADE_MUTATION = gql`
 	mutation DeleteGradeById($id: String!) {
 		deleteGradeById(id: $id) {
@@ -496,15 +445,28 @@ const DELETE_GRADE_MUTATION = gql`
 	}
 `;
 
-// Récupérer les classes disponibles (admin)
+// Récupérer toutes les notes
 const {
-	result: classesResult,
-	loading: classesLoading,
-	refetch: refetchClasses,
-} = useQuery(GET_CLASSES_QUERY);
+	result: gradesResult,
+	loading: gradesLoading,
+	refetch: refetchGrades,
+} = useQuery(GET_ALL_GRADES_QUERY);
+
+// Observer et stocker les notes
+watch(gradesResult, (newResult) => {
+	if (newResult?.getGrades) {
+		grades.value = newResult.getGrades;
+	}
+});
+
+// Récupérer toutes les classes
+provideApolloClient(apolloClasses);
+const { result: classesResult, loading: classesLoading } = useQuery(GET_CLASSES_QUERY);
+
+// Observer et stocker les classes
 watch(classesResult, (newResult) => {
 	if (newResult?.getClasses) {
-		myClasses.value = newResult.getClasses;
+		classes.value = newResult.getClasses;
 	}
 });
 
@@ -515,27 +477,63 @@ const {
 	loading: usersLoading,
 	refetch: refetchUsers,
 } = useQuery(GET_USERS_QUERY);
+
+// Observer et stocker les utilisateurs
 watch(usersResult, (newResult) => {
 	if (newResult?.getUsers) {
 		allUsers.value = newResult.getUsers;
 	}
 });
 
-// Récupérer toutes les notes
-const {
-	result,
-	loading: gradesLoading,
-	refetch,
-} = useQuery(GET_GRADES_QUERY, null, {
-	fetchPolicy: 'network-only',
-});
-watch(result, (newResult) => {
-	if (newResult?.getGrades) {
-		grades.value = newResult.getGrades;
+// Revenir au client apolloGrades pour les mutations
+provideApolloClient(nuxtApp.$apolloGrades as any);
+
+// Mutations
+const { mutate: updateGrade } = useMutation(UPDATE_GRADE_MUTATION);
+const { mutate: deleteGradeMutation } = useMutation(DELETE_GRADE_MUTATION);
+
+// États de chargement combinés
+watch(
+	[gradesLoading, classesLoading, usersLoading],
+	([gradeLoading, classLoading, userLoading]) => {
+		loading.value = gradeLoading || classLoading || userLoading;
+	},
+);
+
+// Professeurs uniques extraits des notes
+const uniqueProfessors = computed(() => {
+	const professorIds = new Set<string>();
+	const professorList = [];
+
+	for (const grade of grades.value) {
+		if (grade.professorId && !professorIds.has(grade.professorId)) {
+			professorIds.add(grade.professorId);
+			professorList.push({
+				id: grade.professorId,
+				name: grade.professorNames || grade.professorId,
+			});
+		}
 	}
+
+	return professorList;
 });
-watch(gradesLoading, (isLoading) => {
-	loading.value = isLoading;
+
+// Étudiants uniques extraits des notes
+const uniqueStudents = computed(() => {
+	const studentIds = new Set<string>();
+	const studentList = [];
+
+	for (const grade of grades.value) {
+		if (grade.userId && !studentIds.has(grade.userId)) {
+			studentIds.add(grade.userId);
+			studentList.push({
+				id: grade.userId,
+				name: grade.userNames || grade.userId,
+			});
+		}
+	}
+
+	return studentList;
 });
 
 // Cours uniques pour le filtre
@@ -547,69 +545,52 @@ const uniqueCourses = computed(() => {
 	return Array.from(courses);
 });
 
-// Étudiants disponibles pour la classe sélectionnée
-const availableStudents = computed(() => {
-	if (!classFilter.value) return [];
-	const selectedClass = myClasses.value.find((c) => c.id === classFilter.value);
-	if (!selectedClass) return [];
-	return allUsers.value.filter(
-		(user) =>
-			grades.value.some((grade) => grade.userId === user.id) ||
-			(selectedClass.userIds && selectedClass.userIds.includes(user.id)),
-	);
-});
-
-// Grades filtrés par cours et par étudiant
+// Grades filtrés selon tous les critères
 const filteredGrades = computed(() => {
-	let filtered = grades.value;
-	if (classFilter.value) {
-		filtered = filtered.filter((grade) => grade.classId === classFilter.value);
-	}
-	if (courseFilter.value) {
-		const filter = courseFilter.value.toLowerCase();
-		filtered = filtered.filter(
-			(grade) => grade.course && grade.course.toLowerCase().includes(filter),
-		);
-	}
-	if (studentFilter.value) {
-		filtered = filtered.filter((grade) => grade.userId === studentFilter.value);
-	}
-	return filtered;
+	return grades.value.filter((grade) => {
+		// Filtre par classe
+		if (classFilter.value && grade.classId !== classFilter.value) {
+			return false;
+		}
+
+		// Filtre par professeur
+		if (professorFilter.value && grade.professorId !== professorFilter.value) {
+			return false;
+		}
+
+		// Filtre par cours
+		if (courseFilter.value && grade.course !== courseFilter.value) {
+			return false;
+		}
+
+		// Filtre par étudiant
+		if (studentFilter.value && grade.userId !== studentFilter.value) {
+			return false;
+		}
+
+		return true;
+	});
 });
 
-// Initialisation
+// Initialisation et actions
 onMounted(async () => {
-	await refetch();
+	// Récupérer toutes les notes (l'admin a accès à tout)
+	provideApolloClient(nuxtApp.$apolloGrades as any);
+	await refetchGrades();
+
+	// Récupérer toutes les classes
+	provideApolloClient(apolloClasses);
+	await useQuery(GET_CLASSES_QUERY).refetch();
+
+	// Récupérer tous les utilisateurs
+	provideApolloClient(apolloUsers);
 	await refetchUsers();
-	await refetchClasses();
+
+	// Retourner au client grades pour le reste des opérations
+	provideApolloClient(nuxtApp.$apolloGrades as any);
 });
 
-// Méthodes de gestion des modals et des notes
-function clearAllFilters() {
-	classFilter.value = '';
-	courseFilter.value = '';
-	studentFilter.value = '';
-}
-
-async function openAddGradeModal() {
-	if (allUsers.value.length === 0) {
-		provideApolloClient(apolloUsers);
-		await refetchUsers();
-	}
-	editingGrade.value = null;
-	gradeForm.value = {
-		id: '',
-		userId: '',
-		professorId: currentUserId.value,
-		classId: classFilter.value, // Utilise l'ID associé à la classe sélectionnée
-		course: '',
-		note: '',
-		grade: 0,
-	};
-	studentNotInClassError.value = false;
-	showGradeModal.value = true;
-}
-
+// Gestion des modals
 function openEditGradeModal(grade: any) {
 	editingGrade.value = grade;
 	gradeForm.value = {
@@ -626,6 +607,7 @@ function openEditGradeModal(grade: any) {
 
 function closeGradeModal() {
 	showGradeModal.value = false;
+	editingGrade.value = null;
 }
 
 function openDeleteGradeModal(grade: any) {
@@ -638,30 +620,44 @@ function closeDeleteModal() {
 	gradeToDelete.value = null;
 }
 
+// Méthodes pour les filtres
+function clearAllFilters() {
+	classFilter.value = '';
+	professorFilter.value = '';
+	courseFilter.value = '';
+	studentFilter.value = '';
+}
+
+// Sauvegarde des données
 async function saveGrade() {
+	if (!editingGrade.value) return;
+
 	try {
-		provideApolloClient(apolloGrades);
-		if (editingGrade.value) {
-			await updateGrade({
-				id: gradeForm.value.id,
-				course: gradeForm.value.course,
-				note: gradeForm.value.note,
-				grade: parseInt(gradeForm.value.grade.toString()),
-			});
-			showNotification('Note mise à jour avec succès', 'success');
-		} else {
-			await createGrade({
-				course: gradeForm.value.course,
-				note: gradeForm.value.note,
-				grade: parseInt(gradeForm.value.grade.toString()),
-				userId: gradeForm.value.userId,
-				professorId: currentUserId.value,
-				classId: gradeForm.value.classId, // Cette valeur est l'ID réel de la classe
-			});
-			showNotification('Note ajoutée avec succès', 'success');
+		provideApolloClient(nuxtApp.$apolloGrades as any);
+
+		// Vérifier que le commentaire a au moins 20 caractères
+		if (gradeForm.value.note.trim().length < 20) {
+			showNotification('Le commentaire doit contenir au moins 20 caractères.', 'error');
+			return;
 		}
-		await refetch();
-		await refetchUsers();
+
+		// Vérifier que la note est entre 10 et 100
+		const numericGrade = parseFloat(gradeForm.value.grade.toString());
+		if (numericGrade < 10 || numericGrade > 100) {
+			showNotification('La note doit être comprise entre 10 et 100.', 'error');
+			return;
+		}
+
+		await updateGrade({
+			id: gradeForm.value.id,
+			course: gradeForm.value.course,
+			note: gradeForm.value.note,
+			grade: numericGrade,
+		});
+
+		// Rafraîchir les données
+		await refetchGrades();
+		showNotification('Note mise à jour avec succès', 'success');
 		closeGradeModal();
 	} catch (error) {
 		console.error('Erreur lors de la sauvegarde:', error);
@@ -671,10 +667,16 @@ async function saveGrade() {
 
 async function deleteGrade() {
 	if (!gradeToDelete.value) return;
+
 	try {
-		provideApolloClient(apolloGrades);
-		await deleteGradeMutation({ id: gradeToDelete.value.id });
-		await refetch();
+		provideApolloClient(nuxtApp.$apolloGrades as any);
+
+		await deleteGradeMutation({
+			id: gradeToDelete.value.id,
+		});
+
+		// Rafraîchir les données
+		await refetchGrades();
 		showNotification('Note supprimée avec succès', 'success');
 		closeDeleteModal();
 	} catch (error) {
@@ -690,70 +692,33 @@ function showNotification(message: string, type: 'success' | 'error') {
 		notification.value = null;
 	}, 3000);
 }
-
-// Vérifier si l'étudiant est inscrit dans la classe
-function isStudentInClass(studentId: string): boolean {
-	const selectedClass = myClasses.value.find((c) => c.id === classFilter.value);
-	if (!selectedClass) return false;
-	return selectedClass.userIds && selectedClass.userIds.includes(studentId);
-}
-
-// Validation et sauvegarde de la note
-async function validateAndSaveGrade() {
-	// Réinitialiser l'erreur d'étudiant non inscrit
-	studentNotInClassError.value = false;
-	if (editingGrade.value) {
-		await saveGrade();
-		return;
-	}
-	if (!isStudentInClass(gradeForm.value.userId)) {
-		studentNotInClassError.value = true;
-		return;
-	}
-	if (!gradeForm.value.note || gradeForm.value.note.trim().length < 20) {
-		showNotification('Le commentaire doit contenir au moins 20 caractères.', 'error');
-		return;
-	}
-	const numericGrade = parseInt(gradeForm.value.grade.toString());
-	if (numericGrade < 10 || numericGrade > 100) {
-		showNotification('La note doit être comprise entre 10 et 100.', 'error');
-		return;
-	}
-	await saveGrade();
-}
-
-// Observateur pour les changements d'URL
-watch(
-	() => route.query,
-	(newQuery) => {
-		const urlClassId = newQuery.classId as string;
-		if (urlClassId && urlClassId !== classFilter.value) {
-			classFilter.value = urlClassId;
-			fetchGrades();
-		}
-	},
-);
 </script>
 
 <style scoped>
 .card {
 	@apply bg-white shadow-lg rounded-2xl transition duration-300 dark:bg-violet-950;
 }
+
 .title-primary {
 	@apply mb-6 text-2xl font-bold text-violet-700 dark:text-violet-300;
 }
+
 .label-primary {
 	@apply block mb-1 text-sm font-medium text-gray-700 dark:text-violet-300;
 }
+
 .input-primary {
 	@apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent;
 }
+
 .btn-primary {
 	@apply py-2 px-4 font-medium text-white transition-colors bg-violet-600 rounded-lg hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
+
 .btn-secondary {
 	@apply py-2 px-4 font-medium text-gray-700 transition-colors bg-white rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 dark:text-gray-300 dark:bg-violet-900 dark:hover:bg-violet-800;
 }
+
 .link-primary {
 	@apply text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300;
 }

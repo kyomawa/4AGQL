@@ -11,15 +11,11 @@ export default defineNuxtRouteMiddleware((to) => {
 
 	// Si l'utilisateur n'est pas authentifié et la route n'est pas publique, rediriger vers la page d'accueil
 	if (!isAuthenticated.value && !publicRoutes.includes(to.path) && !isPublicClassDetail) {
-		console.log('Middleware: Auth check failed, redirecting to home');
 		return navigateTo('/');
 	}
 
 	// Si l'utilisateur est authentifié et essaie d'accéder aux pages de login/register, rediriger vers la page d'accueil
 	if (isAuthenticated.value && (to.path === '/login' || to.path === '/register')) {
-		console.log('Middleware: Already authenticated, redirecting to home');
 		return navigateTo('/');
 	}
-
-	console.log('Middleware: Auth check passed for', to.path);
 });

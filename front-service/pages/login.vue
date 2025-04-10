@@ -110,7 +110,6 @@ const handleLogin = async () => {
 	try {
 		const success = await login(email.value, password.value);
 		if (success) {
-			console.log('Login successful, redirecting to home');
 			router.push('/');
 		} else {
 			error.value = 'Identifiants incorrects';

@@ -6,7 +6,7 @@ import { onError } from '@apollo/client/link/error';
 export default defineNuxtPlugin((nuxtApp) => {
 	// Configuration des liens pour chaque service avec les URLs correctes
 	const authHttpLink = createHttpLink({
-		uri: 'http://localhost:8100/api/auth/graphql',
+		uri: 'http://localhost/api/auth/graphql',
 		credentials: 'include',
 		fetch: (uri, options) => {
 			return fetch(uri, {
@@ -14,14 +14,14 @@ export default defineNuxtPlugin((nuxtApp) => {
 				mode: 'no-cors',
 				headers: {
 					...options?.headers,
-					Origin: 'http://localhost:8100',
+					Origin: 'http://localhost',
 				},
 			});
 		},
 	});
 
 	const usersHttpLink = createHttpLink({
-		uri: 'http://localhost:8100/api/users/graphql',
+		uri: 'http://localhost/api/users/graphql',
 		credentials: 'include',
 		fetch: (uri, options) => {
 			return fetch(uri, {
@@ -29,14 +29,14 @@ export default defineNuxtPlugin((nuxtApp) => {
 				mode: 'no-cors',
 				headers: {
 					...options?.headers,
-					Origin: 'http://localhost:8100',
+					Origin: 'http://localhost',
 				},
 			});
 		},
 	});
 
 	const gradesHttpLink = createHttpLink({
-		uri: 'http://localhost:8100/api/grades/graphql',
+		uri: 'http://localhost/api/grades/graphql',
 		credentials: 'include',
 		fetch: (uri, options) => {
 			return fetch(uri, {
@@ -44,14 +44,14 @@ export default defineNuxtPlugin((nuxtApp) => {
 				mode: 'no-cors',
 				headers: {
 					...options?.headers,
-					Origin: 'http://localhost:8100',
+					Origin: 'http://localhost',
 				},
 			});
 		},
 	});
 
 	const classesHttpLink = createHttpLink({
-		uri: 'http://localhost:8100/api/classes/graphql',
+		uri: 'http://localhost/api/classes/graphql',
 		credentials: 'include',
 		fetch: (uri, options) => {
 			return fetch(uri, {
@@ -59,7 +59,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 				mode: 'no-cors',
 				headers: {
 					...options?.headers,
-					Origin: 'http://localhost:8100',
+					Origin: 'http://localhost',
 				},
 			});
 		},
@@ -84,7 +84,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 		return {
 			headers: {
 				...headers,
-				Origin: 'http://localhost:8100',
+				Origin: 'http://localhost',
 			},
 		};
 	});

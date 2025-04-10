@@ -574,8 +574,6 @@ const route = useRoute();
 watch(classesResult, (newResult) => {
 	if (newResult?.getClassesByUserId) {
 		classes.value = newResult.getClassesByUserId;
-	} else {
-		console.log("Pas de classes retournées ou vous n'êtes pas créateur de classes");
 	}
 });
 
@@ -658,7 +656,6 @@ onMounted(async () => {
 		// Récupérer les utilisateurs pour la gestion des étudiants
 		await fetchUsers();
 	} else {
-		console.warn('Utilisateur non connecté ou ID non disponible');
 		loading.value = false;
 	}
 });
