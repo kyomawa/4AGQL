@@ -21,6 +21,41 @@ pub struct Grade {
 
 // =============================================================================================================================
 
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GradeWithAllNames {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub _id: Option<ObjectId>,
+
+    pub course: String,
+    pub note: String,
+    pub grade: i32,
+    pub user_id: ObjectId,
+    pub user_names: String,
+    pub professor_names: String,
+    pub professor_id: ObjectId,
+    pub class_id: ObjectId,
+    pub class_name: String,
+}
+
+// =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+#[serde(rename_all = "camelCase")]
+pub struct GetUserFirstAndLastNameResponse {
+    pub first_name: String,
+    pub last_name: String,
+}
+
+// =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+#[serde(rename_all = "camelCase")]
+pub struct GetClassNameResponse {
+    pub name: String,
+}
+
+// =============================================================================================================================
+
 #[derive(Debug, Serialize, Deserialize, InputObject, Validate)]
 pub struct CreateGradeRequest {
     #[serde(deserialize_with = "trim_lowercase")]

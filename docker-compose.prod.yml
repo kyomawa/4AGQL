@@ -65,9 +65,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.front.rule=Host(`localhost`) && !PathPrefix(`/api`)"
       - "traefik.http.routers.front.entrypoints=http"
-      - "traefik.http.services.front.loadbalancer.server.port=5173"
+      - "traefik.http.services.front.loadbalancer.server.port=3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5173"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
       interval: 10s
       timeout: 5s
       retries: 5
