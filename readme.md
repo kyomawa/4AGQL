@@ -1,6 +1,6 @@
 # Schoolnc ltd Project
 
-**Status:** _In Progress_
+**Status:** Achieved
 
 ### Development Environment
 
@@ -99,18 +99,3 @@ In addition to these services, the project includes:
     
 3. Access the front-end application via the URL provided by Traefik (e.g., `http://localhost`).
 4. Each microservice’s GraphQL API is accessible under its respective endpoint (e.g., `/api/auth/graphql`, `/api/users/graphql`, etc.).
-5. Swagger documentation for each service will be found in the individual service directories.
-
-## Project Status
-
-This project is currently in progress. We are actively developing and testing each service to ensure robust, secure, and scalable functionality. Contributions and suggestions are welcome!
-
-## Additional Information
-
-- **Testing:**
-    
-    Basic tests are implemented for core functionalities. Additional tests will be added to cover more use cases and ensure code quality.
-    
-- **Documentation:**
-    
-    A detailed README and Swagger documentation will be provided for each service.

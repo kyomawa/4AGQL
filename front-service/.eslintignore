@@ -1,0 +1,2 @@
+# Ignorer les erreurs TypeScript dans les fichiers Vue
+*.vue

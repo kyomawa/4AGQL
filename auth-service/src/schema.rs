@@ -41,6 +41,13 @@ pub struct LoginRequest {
 
 // =============================================================================================================================
 
+#[derive(Debug, Serialize, Deserialize, Validate, InputObject)]
+pub struct UpdateRoleRequest {
+    pub role: AuthRole,
+}
+
+// =============================================================================================================================
+
 #[derive(Debug, Serialize, Deserialize, SimpleObject)]
 pub struct LoginResponse {
     pub user_id: String,

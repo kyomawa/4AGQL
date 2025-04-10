@@ -45,3 +45,27 @@ pub struct UpdateClassRequest {
 }
 
 // =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+pub struct ClassWithCreatorNames {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub _id: Option<ObjectId>,
+
+    pub name: String,
+    pub creator_id: ObjectId,
+    pub creator_names: String,
+
+    #[serde(default)]
+    pub user_ids: Vec<ObjectId>,
+}
+
+// =============================================================================================================================
+
+#[derive(Debug, Serialize, Deserialize, SimpleObject)]
+#[serde(rename_all = "camelCase")]
+pub struct GetUserFirstAndLastNameResponse {
+    pub first_name: String,
+    pub last_name: String,
+}
+
+// =============================================================================================================================

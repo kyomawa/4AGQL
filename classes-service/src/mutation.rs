@@ -27,7 +27,11 @@ impl MutationRoot {
 
         class.validate()?;
 
-        let creator_id = ObjectId::parse_str(&token.user_id)?;
+        let creator_id = if token.role == AuthRole::Admin {
+            ObjectId::parse_str(&class.creator_id)?
+        } else {
+            ObjectId::parse_str(&token.user_id)?
+        };
 
         let db = ctx.data_unchecked::<Database>();
         let collection = db.collection::<Class>("classes");
