@@ -27,7 +27,7 @@ impl QueryRoot {
         let token = ctx
             .data_opt::<Claims>()
             .ok_or("Unauthorized: token missing or invalid")?;
-        let required_roles = &[AuthRole::Admin];
+        let required_roles = &[AuthRole::Admin, AuthRole::Professor];
 
         user_has_any_of_these_roles(token, required_roles)?;
 
